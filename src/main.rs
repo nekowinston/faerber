@@ -14,7 +14,7 @@ use rayon::prelude::*;
 
 fn main() {
     //run palletize on the wallpaper.png image
-    palettize("wallpaper.png", "mocha", "result.png");
+    palettize("wallpaper.jpg", "mocha", "result.png");
 }
 
 fn palettize(image_path: &str, palette: &str, output: &str) {
