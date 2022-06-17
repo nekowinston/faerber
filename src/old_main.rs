@@ -10,16 +10,20 @@ use image::io::Reader as ImageReader;
 use image::{EncodableLayout, ImageBuffer, RgbImage, Rgba, RgbaImage};
 use rayon::prelude::*;
 
-
-
-fn main() {
-    //run palletize on the wallpaper.png image
-    palettize("wallpaper.png", "mocha", "result.png");
+#[derive(Parser, Debug)]
+#[clap(author="farbenfroh.io", version, about="Match images to your favourite colour schemes!", long_about = None)]
+struct Args {
+    #[clap(short='p', value_parser, default_value = "mocha", value_hint = clap::ValueHint::FilePath)]
+    palette: String,
+    #[clap(short='o', value_parser, value_hint = clap::ValueHint::FilePath)]
+    output: String,
+    #[clap(value_hint = clap::ValueHint::FilePath)]
+    image_path: String,
 }
 
-fn palettize(image_path: &str, palette: &str, output: &str) {
-    //let args = Args::parse();
-    let img: RgbaImage = image::open(image_path)
+fn main() {
+    let args = Args::parse();
+    let img: RgbaImage = image::open(args.image_path)
         .expect("Should be able to open image")
         .to_rgba8();
 
@@ -50,7 +54,7 @@ fn palettize(image_path: &str, palette: &str, output: &str) {
     let result = convert(img, DEMethod::DE2000, &labs);
 
     image::save_buffer(
-        output,
+        args.output,
         result.clone().as_bytes(),
         width,
         height,
