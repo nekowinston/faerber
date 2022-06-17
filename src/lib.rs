@@ -11,14 +11,15 @@ use image::{EncodableLayout, ImageBuffer, RgbImage, Rgba, RgbaImage};
 use rayon::prelude::*;
 
 
-
+/*
 fn main() {
     //run palletize on the wallpaper.png image
     palettize("wallpaper.jpg", "mocha", "result.png");
 }
-
-fn palettize(image_path: &str, palette: &str, output: &str) {
+*/
+pub fn palettize(opt_path: Option<&str>, palette: &str, output: &str) {
     //let args = Args::parse();
+    let image_path = opt_path.unwrap();
     let img: RgbaImage = image::open(image_path)
         .expect("Should be able to open image")
         .to_rgba8();
