@@ -1,12 +1,12 @@
 #[allow(unused_imports)]
 use iced::{
-    alignment, button, scrollable, slider, text_input, Alignment, Button, Checkbox, Color,
-    Column, Container, ContentFit, Command, Element, Image, Length, Radio, Row, Sandbox,
-    Scrollable, Settings, Slider, Space, Text, TextInput, Toggler,
+    alignment, button, scrollable, slider, text_input, Alignment, Button, Checkbox, Color, Column,
+    Command, Container, ContentFit, Element, Image, Length, Radio, Row, Sandbox, Scrollable,
+    Settings, Slider, Space, Text, TextInput, Toggler,
 };
 
-use native_dialog::FileDialog;
 use faerber::palettize;
+use native_dialog::FileDialog;
 
 pub fn main() -> iced::Result {
     Faerber::run(Settings::default())
@@ -14,27 +14,19 @@ pub fn main() -> iced::Result {
 
 #[derive(Debug)]
 enum Faerber {
-    Fresh {
-        upload: button::State,
-    },
-    Finished {
-        upload: button::State,
-    },
+    Fresh { upload: button::State },
+    Finished { upload: button::State },
 }
-
 
 #[derive(Debug, Clone)]
 enum Message {
-        Completed(Result<(),Error>),
-        ButtonPressed,
+    Completed(Result<(), Error>),
+    ButtonPressed,
 }
-
-
 
 impl Sandbox for Faerber {
     type Message = Message;
 
-    
     fn new() -> Self {
         Self::Fresh {
             upload: button::State::new(),
@@ -44,7 +36,7 @@ impl Sandbox for Faerber {
     fn title(&self) -> String {
         String::from("Farbenfroh")
     }
-    
+
     fn update(&mut self, message: Self::Message) {
         match message {
             Message::ButtonPressed => {
@@ -60,42 +52,30 @@ impl Sandbox for Faerber {
                         println!("File selected: {:?}", path);
                         //palettize(path.to_str(), "latte", "result.png");
                         Command::perform(magic(path.to_str()), Message::Completed);
-                        *self = Self::Finished { upload: button::State::new() }
-                    },
+                        *self = Self::Finished {
+                            upload: button::State::new(),
+                        }
+                    }
                     None => return,
                 };
             }
         }
     }
 
-        fn view(&mut self) -> Element<Self::Message> {
-            let content = match self { 
-                Self::Fresh {upload} => Column::new()
-                    .padding(20)
-                    .align_items(Alignment::Center)
-                    .push(
-                        Text::new("faerber!")
-                        .size(100)
-                    )
-                    .push(  
-                        Button::new(upload, Text::new("Upload"))
-                            .on_press(Message::ButtonPressed),
-                    ),
-                Self::Finished {upload} => Column::new()
-                        .padding(20)
-                        .align_items(Alignment::Center)
-                        .push(
-                            Text::new("faerber!")
-                            .size(100)
-                        )
-                        .push(  
-                            Button::new(upload, Text::new("Upload"))
-                                .on_press(Message::ButtonPressed),
-                        )
-                        .push(
-                            Image::new("result.png")
-                        ),
-            };
+    fn view(&mut self) -> Element<Self::Message> {
+        let content = match self {
+            Self::Fresh { upload } => Column::new()
+                .padding(20)
+                .align_items(Alignment::Center)
+                .push(Text::new("faerber!").size(100))
+                .push(Button::new(upload, Text::new("Upload")).on_press(Message::ButtonPressed)),
+            Self::Finished { upload } => Column::new()
+                .padding(20)
+                .align_items(Alignment::Center)
+                .push(Text::new("faerber!").size(100))
+                .push(Button::new(upload, Text::new("Upload")).on_press(Message::ButtonPressed))
+                .push(Image::new("result.png")),
+        };
         Container::new(content)
             .width(Length::Fill)
             .height(Length::Fill)
@@ -109,7 +89,7 @@ async fn magic(path: Option<&str>) {
     palettize(path, "latte", "result.png");
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 enum Error {
     APIError,
     LanguageError,
