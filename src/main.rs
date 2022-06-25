@@ -1,3 +1,5 @@
+use std::path::Path;
+
 #[allow(unused_imports)]
 use iced::{
     alignment, button, scrollable, slider, text_input, Alignment, Button, Checkbox, Color, Column,
@@ -7,6 +9,7 @@ use iced::{
 
 use faerber::palettize;
 use native_dialog::FileDialog;
+
 
 pub fn main() -> iced::Result {
     Faerber::run(Settings::default())
@@ -48,16 +51,25 @@ impl Sandbox for Faerber {
                     .show_open_single_file()
                     .unwrap();
                 match path {
-                    Some(path) => {
+                    Some(ref path) => {
                         println!("File selected: {:?}", path);
                         //palettize(path.to_str(), "latte", "result.png");
-                        Command::perform(magic(path.to_str()), Message::Completed);
-                        *self = Self::Finished {
-                            upload: button::State::new(),
-                        }
                     }
                     None => return,
                 };
+                let newpath = Path::new(&path.unwrap()).to_owned();
+                Command::perform(magic(newpath.to_str()), Message::Completed);
+            }
+            Message::Completed(Ok(())) => {
+                *self = Self::Finished {
+                    upload: button::State::new(),
+                }
+            }
+            Message::Completed(Err(_error)) => {
+                *self = Self::Fresh {
+                    upload: button::State::new(),
+                };
+                println!("An error occured.");
             }
         }
     }
@@ -85,8 +97,9 @@ impl Sandbox for Faerber {
     }
 }
 
-async fn magic(path: Option<&str>) {
-    palettize(path, "latte", "result.png");
+async fn magic(path: Option<&str>) -> Result<(), Error> {
+    palettize(path.unwrap(), "latte", "result.png");
+    Ok(())
 }
 
 #[derive(Debug, Clone)]
