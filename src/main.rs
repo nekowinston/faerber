@@ -10,7 +10,6 @@ use iced::{
 use faerber::palettize;
 use native_dialog::FileDialog;
 
-
 pub fn main() -> iced::Result {
     Faerber::run(Settings::default())
 }
@@ -53,12 +52,14 @@ impl Sandbox for Faerber {
                 match path {
                     Some(ref path) => {
                         println!("File selected: {:?}", path);
+                        let newpath = Path::new(&path).to_owned();
+                        let npat = newpath.to_str().unwrap();
+                        println!("{}", npat);
+                        Command::perform(magic(npat.to_owned()), Message::Completed);
                         //palettize(path.to_str(), "latte", "result.png");
                     }
                     None => return,
                 };
-                let newpath = Path::new(&path.unwrap()).to_owned();
-                Command::perform(magic(newpath.to_str()), Message::Completed);
             }
             Message::Completed(Ok(())) => {
                 *self = Self::Finished {
@@ -97,11 +98,13 @@ impl Sandbox for Faerber {
     }
 }
 
-async fn magic(path: Option<&str>) -> Result<(), Error> {
-    palettize(path.unwrap(), "latte", "result.png");
+async fn magic(path: String) -> Result<(), Error> {
+    println!("running :D");
+    palettize(path.as_str(), "latte", "result.png");
     Ok(())
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 enum Error {
     APIError,

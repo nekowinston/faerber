@@ -18,6 +18,7 @@ fn main() {
 }
 */
 pub fn palettize(image_path: &str, palette: &str, output: &str) {
+    println!("wasgod");
     //let args = Args::parse();
     let img: RgbaImage = image::open(image_path)
         .expect("Should be able to open image")
