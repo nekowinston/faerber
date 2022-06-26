@@ -1,13 +1,11 @@
-use std::path::Path;
-
-#[allow(unused_imports)]
 use iced::{
     alignment, button, scrollable, slider, text_input, Alignment, Button, Checkbox, Color, Column,
     Command, Container, ContentFit, Element, Image, Length, Radio, Row, Sandbox, Scrollable,
     Settings, Slider, Space, Text, TextInput, Toggler,
 };
+use image::*;
 
-use faerber::palettize;
+use faerber::convert;
 use native_dialog::FileDialog;
 
 pub fn main() -> iced::Result {
@@ -50,27 +48,16 @@ impl Sandbox for Faerber {
                     .show_open_single_file()
                     .unwrap();
                 match path {
-                    Some(ref path) => {
+                    Some(path) => {
                         println!("File selected: {:?}", path);
-                        let newpath = Path::new(&path).to_owned();
-                        let npat = newpath.to_str().unwrap();
-                        println!("{}", npat);
-                        Command::perform(magic(npat.to_owned()), Message::Completed);
                         //palettize(path.to_str(), "latte", "result.png");
+                        Command::perform(magic(path.to_str()), Message::Completed);
+                        *self = Self::Finished {
+                            upload: button::State::new(),
+                        }
                     }
                     None => return,
                 };
-            }
-            Message::Completed(Ok(())) => {
-                *self = Self::Finished {
-                    upload: button::State::new(),
-                }
-            }
-            Message::Completed(Err(_error)) => {
-                *self = Self::Fresh {
-                    upload: button::State::new(),
-                };
-                println!("An error occured.");
             }
         }
     }
@@ -98,13 +85,12 @@ impl Sandbox for Faerber {
     }
 }
 
-async fn magic(path: String) -> Result<(), Error> {
-    println!("running :D");
-    palettize(path.as_str(), "latte", "result.png");
-    Ok(())
+async fn magic(path: Option<&str>) {
+    let img = open(path.unwrap()).unwrap().to_rgba8();
+    let method = faerber::parse_delta_e_method(String::from("2000"));
+    // convert(img, method, );
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Clone)]
 enum Error {
     APIError,

@@ -1,5 +1,6 @@
 [target.wasm32-unknown-unknown]
 rustflags = ["-C", "target-feature=+atomics,+bulk-memory,+mutable-globals"]
 
+# TODO: reactivate WASM build flags
 #[unstable]
 #build-std = ["panic_abort", "std"]
