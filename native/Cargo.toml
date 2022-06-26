@@ -17,6 +17,10 @@ path = "src/main.rs"
 # name = "faerber-gui"
 # path = "src/gui.rs"
 
+[profile.release]
+lto = true
+opt-level= 3
+
 [dependencies]
 clap = { version = "3.2.5", features = ["derive"] }
 faerber = { path = ".." }

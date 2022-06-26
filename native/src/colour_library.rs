@@ -35,7 +35,14 @@ pub struct Palette {
 #[derive(Debug, Clone)]
 pub struct Flavour {
     pub name: String,
-    pub colours: Vec<u32>,
+    pub colours: Vec<FlavourColour>,
+}
+
+// ...each of wich can be toggled on and off.
+#[derive(Debug, Clone)]
+pub struct FlavourColour {
+    pub colour: u32,
+    pub enabled: bool,
 }
 
 // you can get a flavour from the palette
@@ -56,15 +63,21 @@ impl Flavour {
     pub fn new(name: &str, colours: Vec<u32>) -> Self {
         Self {
             name: name.to_string(),
-            colours,
+            colours: colours
+                .into_iter()
+                .map(|c| FlavourColour {
+                    colour: c,
+                    enabled: true,
+                })
+                .collect(),
         }
     }
     // get active colours in hex
     pub fn get_hex(&self) -> Vec<String> {
         self.colours
             .iter()
-            // .filter(|c| c.enabled)
-            .map(|c| format!("#{:06x}", c))
+            .filter(|c| c.enabled)
+            .map(|c| format!("#{:06x}", c.colour))
             .collect()
     }
 
@@ -72,12 +85,12 @@ impl Flavour {
     pub fn get_labs(&self) -> Vec<Lab> {
         self.colours
             .iter()
-            // .filter(|c| c.enabled)
+            .filter(|c| c.enabled)
             .map(|c| {
                 Lab::from_rgb(&[
-                    ((c >> 16) & 0xFF) as u8,
-                    ((c >> 8) & 0xFF) as u8,
-                    (c & 0xFF) as u8,
+                    ((c.colour >> 16) & 0xFF) as u8,
+                    ((c.colour >> 8) & 0xFF) as u8,
+                    (c.colour & 0xFF) as u8,
                 ])
             })
             .collect()
