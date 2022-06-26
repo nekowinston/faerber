@@ -13,23 +13,23 @@ impl Lab {
         Lab { l, a, b }
     }
 
-    pub(crate) fn from_rgb(rgb: &[u8; 3]) -> Self {
+    pub fn from_rgb(rgb: &[u8; 3]) -> Self {
         Lab::from(LabBase::from_rgb(rgb))
     }
 
-    pub(crate) fn from_rgba(rgba: &[u8; 4]) -> Self {
+    pub fn from_rgba(rgba: &[u8; 4]) -> Self {
         Lab::from(LabBase::from_rgba(rgba))
     }
 
-    pub(crate) fn from(lab: lab::Lab) -> Self {
+    pub fn from(lab: lab::Lab) -> Self {
         Lab::new(lab.l, lab.a, lab.b)
     }
 
-    pub(crate) fn to_rgb(self: Self) -> [u8; 3] {
+    pub fn to_rgb(self: Self) -> [u8; 3] {
         LabBase::from(self).to_rgb()
     }
 
-    pub(crate) fn to_rgba(self: Self) -> [u8; 4] {
+    pub fn to_rgba(self: Self) -> [u8; 4] {
         let rgb = LabBase::from(self).to_rgb();
         [rgb[0], rgb[1], rgb[2], 255]
     }

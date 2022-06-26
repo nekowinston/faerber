@@ -1,0 +1,29 @@
+[package]
+name = "faerber_native"
+version = "0.1.0"
+edition = "2021"
+authors = ["winston <hey@winston.sh>"]
+license = "MIT"
+homepage = "https://farbenfroh.io"
+repository = "https://github.com/farbenfroh/faerber_rs"
+default-run = "faerber-cli"
+
+[[bin]]
+name = "faerber-cli"
+path = "src/main.rs"
+
+# enable for gui
+# [[bin]]
+# name = "faerber-gui"
+# path = "src/gui.rs"
+
+[profile.release]
+lto = true
+opt-level= 3
+
+[dependencies]
+clap = { version = "3.2.5", features = ["derive"] }
+faerber = { path = ".." }
+iced = { version = "0.4.2", features = ["image"] }
+image = "0.24.1"
+native-dialog = { version = "0.6.3", features = ["windows_dpi_awareness", "windows_visual_styles"] }
