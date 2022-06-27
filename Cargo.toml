@@ -9,11 +9,15 @@ image = "0.24.1"
 lab = "0.11.0"
 rayon = "1.5.2"
 
+
+
 [profile.release]
 lto = true
 opt-level= 3
 
-[dependencies]
-iced = {version = "0.4", features = ["image"]}
-native-dialog = {version = "0.6.3", features = ["windows_dpi_awareness", "windows_visual_styles"]}
-faerber = { path = "faerber_rs" }
+[dev-dependencies]
+criterion = "0.1.2"
+
+[[bench]]
+name = "main_benchmark"
+harness = false
