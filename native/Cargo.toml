@@ -2,7 +2,7 @@
 name = "faerber_native"
 version = "0.1.0"
 edition = "2021"
-authors = ["winston <hey@winston.sh>"]
+authors = ["winston <hey@winston.sh>", "dukk <acedaksh7@gmail.com>"]
 license = "MIT"
 homepage = "https://farbenfroh.io"
 repository = "https://github.com/farbenfroh/faerber_rs"
@@ -13,9 +13,9 @@ name = "faerber-cli"
 path = "src/main.rs"
 
 # enable for gui
-# [[bin]]
-# name = "faerber-gui"
-# path = "src/gui.rs"
+[[bin]]
+name = "faerber-gui"
+path = "src/gui.rs"
 
 [profile.release]
 lto = true
