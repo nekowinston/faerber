@@ -1,4 +1,5 @@
 #![allow(unused)]
+#![allow(clippy::unreadable_literal)]
 
 use faerber::custom_lab::Lab;
 
