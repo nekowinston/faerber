@@ -40,14 +40,12 @@ pub fn convert(img: RgbaImage, convert_method: DEMethod, labs: &Vec<Lab>) -> Vec
     return if convert_method != DEMethod::DE2000 {
         img_labs
             .iter()
-            .map(|lab| convert_loop(convert_method, labs, lab))
-            .flatten()
+            .flat_map(|lab| convert_loop(convert_method, labs, lab))
             .collect()
     } else {
         img_labs
             .par_iter()
-            .map(|lab| convert_loop(convert_method, labs, lab))
-            .flatten()
+            .flat_map(|lab| convert_loop(convert_method, labs, lab))
             .collect()
     };
 }
@@ -64,11 +62,11 @@ pub fn convert_loop(convert_method: DEMethod, palette: &Vec<Lab>, lab: &Lab) -> 
 
     // loop over each LAB in the user's palette, and find the closest color
     for color in palette {
-        let delta = DeltaE::new(lab.clone(), color.clone(), convert_method);
+        let delta = DeltaE::new(*lab, *color, convert_method);
 
         if delta.value() < &closest_distance {
-            closest_color = color.clone();
-            closest_distance = delta.value().clone()
+            closest_color = *color;
+            closest_distance = *delta.value()
         }
     }
 

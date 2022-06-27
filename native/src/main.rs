@@ -2,6 +2,7 @@ mod colour_library;
 
 use crate::colour_library::Library;
 use clap::{Parser, ValueEnum};
+use colour_library::Flavour;
 use faerber::DEMethod;
 use image::{EncodableLayout, RgbaImage};
 
@@ -63,16 +64,15 @@ fn main() {
         .get_palette(&args.palette)
         .expect("Should be able to get palette");
 
-    let flavour;
     // get the first flavour if no flavour is specified
-    if args.flavour.is_empty() {
-        flavour = palette.flavours[0].clone();
+    let flavour: Flavour = if args.flavour.is_empty() {
+        palette.flavours[0].clone()
     } else {
-        flavour = palette
+        palette
             .get_flavour(&args.flavour)
             .expect("Should be able to get flavour")
-            .clone();
-    }
+            .clone()
+    };
 
     let width = img.width();
     let height = img.height();
