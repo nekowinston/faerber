@@ -65,7 +65,7 @@ fn main() {
 
     let flavour;
     // get the first flavour if no flavour is specified
-    if &args.flavour.is_empty() {
+    if args.flavour.is_empty() {
         flavour = palette.flavours[0].clone();
     } else {
         flavour = palette

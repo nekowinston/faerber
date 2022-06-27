@@ -1,12 +1,12 @@
 mod colour_library;
 
+use iced::image as iced_image;
 #[allow(unused_imports)]
 use iced::{
     alignment, button, scrollable, slider, text_input, Alignment, Button, Checkbox, Color, Column,
     Command, Container, ContentFit, Element, Image, Length, Radio, Row, Sandbox, Scrollable,
     Settings, Slider, Space, Text, TextInput, Toggler,
 };
-use iced::image as iced_image;
 
 use crate::colour_library::Library;
 use faerber::convert;
@@ -18,8 +18,13 @@ pub fn main() -> iced::Result {
 
 #[derive(Debug)]
 enum FaerberApp {
-    Fresh { upload: button::State },
-    Finished { upload: button::State, result: FaerberImage },
+    Fresh {
+        upload: button::State,
+    },
+    Finished {
+        upload: button::State,
+        result: FaerberImage,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -45,7 +50,8 @@ impl FaerberImage {
             height: image.height(),
         }
     }
-    async fn convert(self) -> Result<Vec<u8>, Error> {
+    fn convert(&self) -> Result<Vec<u8>, Error> {
+        println!("Converting image");
         let image = image::load_from_memory(&self.data).unwrap().to_rgba8();
         let library: Library = Library::default();
         let labs = library
@@ -58,7 +64,6 @@ impl FaerberImage {
         Ok(data)
     }
 }
-
 
 impl Sandbox for FaerberApp {
     type Message = Message;
@@ -87,12 +92,26 @@ impl Sandbox for FaerberApp {
                     Some(ref path) => {
                         println!("File selected: {:?}", path);
                         let path_str = path.to_str().unwrap().to_string();
-                        let image = FaerberImage::new(path_str);
-                        Command::perform(image.convert(), Message::Completed);
+                        let img = FaerberImage::new(path_str);
+                        //Command::perform(async move {image.convert().await}, Message::Completed);
+                        let res = img.convert();
+                        match res {
+                            Ok(data) => {
+                                println!("Conversion successful");
+                                println!("Image loaded, {}", img.data.len());
+                                *self = Self::Finished {
+                                    upload: button::State::new(),
+                                    result: FaerberImage::new(String::from("")),
+                                };
+                            }
+                            Err(e) => {
+                                println!("Conversion failed: {:?}", e);
+                            }
+                        };
                     }
                     None => (),
-                };
-            }
+                }
+                },
             Message::Completed(Ok(img)) => {
                 println!("Image loaded, {}", img.len());
                 *self = Self::Finished {
@@ -133,4 +152,4 @@ impl Sandbox for FaerberApp {
 }
 
 #[derive(Debug, Clone)]
-enum Error{}
+enum Error {}
