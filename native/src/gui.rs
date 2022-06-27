@@ -1,30 +1,71 @@
+mod colour_library;
+
+use iced::image as iced_image;
+#[allow(unused_imports)]
 use iced::{
     alignment, button, scrollable, slider, text_input, Alignment, Button, Checkbox, Color, Column,
     Command, Container, ContentFit, Element, Image, Length, Radio, Row, Sandbox, Scrollable,
     Settings, Slider, Space, Text, TextInput, Toggler,
 };
-use image::*;
 
+use crate::colour_library::Library;
 use faerber::convert;
 use native_dialog::FileDialog;
 
 pub fn main() -> iced::Result {
-    Faerber::run(Settings::default())
+    FaerberApp::run(Settings::default())
 }
 
 #[derive(Debug)]
-enum Faerber {
-    Fresh { upload: button::State },
-    Finished { upload: button::State },
+enum FaerberApp {
+    Fresh {
+        upload: button::State,
+    },
+    Finished {
+        upload: button::State,
+        result: FaerberImage,
+    },
 }
 
 #[derive(Debug, Clone)]
 enum Message {
-    Completed(Result<(), Error>),
+    Completed(Result<Vec<u8>, Error>),
     ButtonPressed,
 }
 
-impl Sandbox for Faerber {
+#[derive(Debug, Clone)]
+struct FaerberImage {
+    data: Vec<u8>,
+    width: u32,
+    height: u32,
+}
+
+impl FaerberImage {
+    fn new(path: String) -> FaerberImage {
+        let image = image::open(path).unwrap();
+
+        FaerberImage {
+            data: image.to_rgba8().to_vec(),
+            width: image.width(),
+            height: image.height(),
+        }
+    }
+    fn convert(&self) -> Result<Vec<u8>, Error> {
+        println!("Converting image");
+        let image = image::load_from_memory(&self.data).unwrap().to_rgba8();
+        let library: Library = Library::default();
+        let labs = library
+            .get_palette("Catppuccin")
+            .unwrap()
+            .get_flavour("")
+            .unwrap()
+            .get_labs();
+        let data = convert(image, faerber::DEMethod::DE2000, &labs);
+        Ok(data)
+    }
+}
+
+impl Sandbox for FaerberApp {
     type Message = Message;
 
     fn new() -> Self {
@@ -48,16 +89,41 @@ impl Sandbox for Faerber {
                     .show_open_single_file()
                     .unwrap();
                 match path {
-                    Some(path) => {
+                    Some(ref path) => {
                         println!("File selected: {:?}", path);
-                        //palettize(path.to_str(), "latte", "result.png");
-                        Command::perform(magic(path.to_str()), Message::Completed);
-                        *self = Self::Finished {
-                            upload: button::State::new(),
-                        }
+                        let path_str = path.to_str().unwrap().to_string();
+                        let img = FaerberImage::new(path_str);
+                        //Command::perform(async move {image.convert().await}, Message::Completed);
+                        let res = img.convert();
+                        match res {
+                            Ok(data) => {
+                                println!("Conversion successful");
+                                println!("Image loaded, {}", img.data.len());
+                                *self = Self::Finished {
+                                    upload: button::State::new(),
+                                    result: FaerberImage::new(String::from("")),
+                                };
+                            }
+                            Err(e) => {
+                                println!("Conversion failed: {:?}", e);
+                            }
+                        };
                     }
-                    None => return,
+                    None => (),
+                }
+                },
+            Message::Completed(Ok(img)) => {
+                println!("Image loaded, {}", img.len());
+                *self = Self::Finished {
+                    upload: button::State::new(),
+                    result: FaerberImage::new(String::from("")),
+                }
+            }
+            Message::Completed(Err(_error)) => {
+                *self = Self::Fresh {
+                    upload: button::State::new(),
                 };
+                println!("An error occured.");
             }
         }
     }
@@ -69,7 +135,7 @@ impl Sandbox for Faerber {
                 .align_items(Alignment::Center)
                 .push(Text::new("faerber!").size(100))
                 .push(Button::new(upload, Text::new("Upload")).on_press(Message::ButtonPressed)),
-            Self::Finished { upload } => Column::new()
+            Self::Finished { upload, result: _ } => Column::new()
                 .padding(20)
                 .align_items(Alignment::Center)
                 .push(Text::new("faerber!").size(100))
@@ -85,14 +151,5 @@ impl Sandbox for Faerber {
     }
 }
 
-async fn magic(path: Option<&str>) {
-    let img = open(path.unwrap()).unwrap().to_rgba8();
-    let method = faerber::parse_delta_e_method(String::from("2000"));
-    // convert(img, method, );
-}
-
 #[derive(Debug, Clone)]
-enum Error {
-    APIError,
-    LanguageError,
-}
+enum Error {}
