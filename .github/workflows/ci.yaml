@@ -33,3 +33,8 @@ jobs:
       - name: Build Release
         working-directory: ./native
         run: "cargo build --release"
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: faerber-cli-${{matrix.os}}
+          path: ./native/target/release/faerber-cli
