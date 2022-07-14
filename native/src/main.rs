@@ -38,6 +38,9 @@ struct Args {
     /// which flavour of the palette to use, defaults to the first entry
     #[clap(long, short = 'f', default_value = "")]
     flavour: String,
+
+    #[clap(long, short, action)]
+    verbose: bool,
 }
 
 fn parse_de_method(method: CliDeltaMethods) -> DEMethod {
@@ -54,36 +57,67 @@ fn main() {
 
     let method = parse_de_method(args.method);
 
-    let img: RgbaImage = image::open(args.input)
-        .expect("Should be able to open image")
-        .to_rgba8();
+    let img: RgbaImage = match image::open(args.input) {
+        Ok(img) => img.to_rgba8(),
+        Err(e) => {
+            eprintln!("Could not open image: {}", e);
+            std::process::exit(1);
+        }
+    };
 
     let library: Library = Library::default();
 
-    let palette = library
-        .get_palette(&args.palette)
-        .expect("Should be able to get palette");
+    // handle missing palettes
+    let palette = match library.get_palette(&args.palette) {
+        Some(palette) => palette,
+        None => {
+            let available_palettes = library
+                .palettes
+                .iter()
+                .map(|p| p.name.clone())
+                .collect::<Vec<_>>();
+            eprintln!("Could not find palette {}", args.palette);
+            eprintln!("Available palettes: {:?}", available_palettes);
+            std::process::exit(1);
+        }
+    };
+    if args.verbose {
+        println!("Using palette {}", palette.name);
+    }
 
     // get the first flavour if no flavour is specified
     let flavour: Flavour = if args.flavour.is_empty() {
         palette.flavours[0].clone()
     } else {
-        palette
-            .get_flavour(&args.flavour)
-            .expect("Should be able to get flavour")
-            .clone()
+        // handle wrong flavour names
+        match palette.get_flavour(&args.flavour) {
+            Some(p) => p.clone(),
+            None => {
+                let available_flavours: Vec<&str> =
+                    palette.flavours.iter().map(|f| f.name.as_str()).collect();
+
+                eprintln!("Could not find flavour {}", args.flavour);
+                eprintln!("Available flavours: {:?}", available_flavours);
+                std::process::exit(1);
+            }
+        }
     };
+    if args.verbose {
+        println!("Using flavour: {}", flavour.name);
+    }
 
     let width = img.width();
     let height = img.height();
     let result = faerber::convert(img, method, &flavour.get_labs());
 
-    image::save_buffer(
+    match image::save_buffer(
         args.output,
         result.as_bytes(),
         width,
         height,
         image::ColorType::Rgba8,
-    )
-    .expect("Should be able to save image");
+    ) {
+        Ok(_) => std::process::exit(0),
+        Err(e) => eprintln!("Could not save image: {}", e),
+    };
 }
