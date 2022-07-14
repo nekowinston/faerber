@@ -8,7 +8,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         rust: [stable]
-      runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
 
@@ -31,6 +31,5 @@ jobs:
           profile: minimal
           components: clippy
       - name: Build Release
-        run:
-          - cd native
-          - cargo b -r
+        working-directory: ./native
+        run: "cargo build --release"
