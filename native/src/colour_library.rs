@@ -21,7 +21,9 @@ impl Library {
         self.palettes.retain(|p| p.name != name);
     }
     pub fn get_palette(&self, name: &str) -> Option<&Palette> {
-        self.palettes.iter().find(|p| p.name == name)
+        self.palettes
+            .iter()
+            .find(|p| p.name.to_lowercase() == name.to_lowercase())
     }
 }
 
@@ -55,7 +57,9 @@ impl Palette {
         }
     }
     pub fn get_flavour(&self, flavour: &str) -> Option<&Flavour> {
-        self.flavours.iter().find(|f| f.name == flavour)
+        self.flavours
+            .iter()
+            .find(|f| f.name.to_lowercase() == flavour.to_lowercase())
     }
 }
 
