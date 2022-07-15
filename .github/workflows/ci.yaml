@@ -31,7 +31,7 @@ jobs:
           toolchain: ${{ matrix.rust }}
           default: true
           profile: minimal
-          components: clippy
+          components: clippy, rustfmt
 
       - name: Check code format
         run: |
