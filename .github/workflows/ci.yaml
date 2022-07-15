@@ -1,5 +1,6 @@
 on:
   - push
+  - pull_request
 
 jobs:
   build:
@@ -23,6 +24,7 @@ jobs:
             ~/.cargo/bin
             target
           key: ${{ matrix.os }}-${{ env.cache-name }}-${{ matrix.rust }}-${{ hashFiles('Cargo.lock') }}
+
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
@@ -30,9 +32,23 @@ jobs:
           default: true
           profile: minimal
           components: clippy
+
+      - name: Check code format
+        run: |
+          cargo fmt --check
+          cd native
+          cargo fmt --check
+
+      - name: Run clippy
+        run: |
+          cargo clippy
+          cd native
+          cargo clippy
+
       - name: Build Release
         working-directory: ./native
         run: "cargo build --release"
+
       - name: Archive Linux/macOS artifact
         if: matrix.os != 'windows-2019'
         run: |
@@ -44,6 +60,7 @@ jobs:
         with:
           name: faerber-cli-${{matrix.os}}
           path: ./native/target/release/faerber-cli.tar.gz
+
       - name: Upload Windows artifact
         if: matrix.os == 'windows-2019'
         uses: actions/upload-artifact@v3
