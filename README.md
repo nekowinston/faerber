@@ -1,17 +1,18 @@
 <h3 align="center">
-<!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-1-orange.svg?style=flat-square)](#contributors-)
-<!-- ALL-CONTRIBUTORS-BADGE:END -->
   <img src="assets/logo.png" style="width: 8rem;"/><br/>
   faerber
 </h3>
+
 <p align="center">
   <a href="https://github.com/farbenfroh/faerber/actions/workflows/ci.yaml">
-    <img alt="GitHub Workflow Status (main)" src="https://img.shields.io/github/workflow/status/farbenfroh/faerber/ci.yaml/main?color=a6e3a1&style=flat-square">
+    <img alt="CI Status" src="https://github.com/farbenfroh/faerber/actions/workflows/ci.yaml/badge.svg?branch=main"/>
   </a>
-  <a href="LICENSE">
-    <img alt="License: MIT" src="https://img.shields.io/github/license/farbenfroh/faerber?color=a6e3a1&style=flat-square">
+  <a href="https://github.com/farbenfroh/faerber/blob/main/LICENSE">
+    <img alt="License: MIT" src="https://img.shields.io/github/license/farbenfroh/faerber"/>
   </a>
+  <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
+  <a href="#contributors-"><img alt="All Contributors" src="https://img.shields.io/badge/all_contributors-1-orange.svg"/></a>
+  <!-- ALL-CONTRIBUTORS-BADGE:END -->
 </p>
 
 faerber is a CLI tool written in Rust, which matches your RGB images to different colourschemes.

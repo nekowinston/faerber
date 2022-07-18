@@ -20,5 +20,6 @@
   "projectOwner": "farbenfroh",
   "repoType": "github",
   "repoHost": "https://github.com",
-  "skipCi": true
+  "skipCi": true,
+  "badgeTemplate: "<a href="#contributors-"><img alt="All Contributors" src="https://img.shields.io/badge/all_contributors-<%= contributors.length %>-orange.svg"/></a>"
 }
