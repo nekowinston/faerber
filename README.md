@@ -1,15 +1,15 @@
-<div style="text-align: center;">
-  <img src="assets/logo.png" style="width: 8rem;"/>
-</div>
-
-<div style="text-align: center;">
+<h3 align="center">
+  <img src="assets/logo.png" style="width: 8rem;"/><br/>
+  faerber
+</h3>
+<p align="center">
   <a href="https://github.com/farbenfroh/faerber/actions/workflows/ci.yaml">
     <img alt="GitHub Workflow Status (main)" src="https://img.shields.io/github/workflow/status/farbenfroh/faerber/ci.yaml/main?color=a6e3a1&style=flat-square">
   </a>
   <a href="LICENSE">
     <img alt="License: MIT" src="https://img.shields.io/github/license/farbenfroh/faerber?color=a6e3a1&style=flat-square">
   </a>
-</div>
+</p>
 
 faerber is a CLI tool written in Rust, which matches your RGB images to different colourschemes.
 It comes with support for multiple colourschemes and has crossplatform support for Android, Linux, macOS, and Microsoft Windows.
