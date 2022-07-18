@@ -1,0 +1,24 @@
+{
+  "files": [
+    "README.md"
+  ],
+  "imageSize": 100,
+  "commit": false,
+  "contributors": [
+    {
+      "login": "skinatro",
+      "name": "Mirage",
+      "avatar_url": "https://avatars.githubusercontent.com/u/60423203?v=4",
+      "profile": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      "contributions": [
+        "doc"
+      ]
+    }
+  ],
+  "contributorsPerLine": 7,
+  "projectName": "faerber",
+  "projectOwner": "farbenfroh",
+  "repoType": "github",
+  "repoHost": "https://github.com",
+  "skipCi": true
+}
