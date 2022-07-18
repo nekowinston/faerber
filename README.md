@@ -11,8 +11,8 @@
     <img alt="License: MIT" src="https://img.shields.io/github/license/farbenfroh/faerber"/>
   </a>
   <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-  <a href="#contributors-"><img alt="All Contributors" src="https://img.shields.io/badge/all_contributors-1-orange.svg"/></a>
-  <!-- ALL-CONTRIBUTORS-BADGE:END -->
+<a href='#contributors-'><img alt='All Contributors' src='https://img.shields.io/badge/all_contributors-3-orange.svg'/></a>
+<!-- ALL-CONTRIBUTORS-BADGE:END -->
 </p>
 
 faerber is a CLI tool written in Rust, which matches your RGB images to different colourschemes.
@@ -50,6 +50,8 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
 <!-- markdownlint-disable -->
 <table>
   <tr>
+    <td align="center"><a href="https://winston.sh/"><img src="https://avatars.githubusercontent.com/u/79978224?v=4?s=100" width="100px;" alt=""/><br /><sub><b>winston</b></sub></a><br /><a href="https://github.com/farbenfroh/faerber/commits?author=nekowinston" title="Code">💻</a></td>
+    <td align="center"><a href="https://github.com/DakshG07"><img src="https://avatars.githubusercontent.com/u/48651837?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Dukk</b></sub></a><br /><a href="https://github.com/farbenfroh/faerber/commits?author=DakshG07" title="Code">💻</a> <a href="#ideas-DakshG07" title="Ideas, Planning, & Feedback">🤔</a></td>
     <td align="center"><a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ"><img src="https://avatars.githubusercontent.com/u/60423203?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Mirage</b></sub></a><br /><a href="https://github.com/farbenfroh/faerber/commits?author=skinatro" title="Documentation">📖</a></td>
   </tr>
 </table>
