@@ -1,10 +1,11 @@
-mod colour_library;
+mod library;
 
-use crate::colour_library::Library;
+use crate::library::{get_labs, Palette};
 use clap::{Parser, ValueEnum};
-use colour_library::Flavour;
 use faerber::DEMethod;
 use image::{EncodableLayout, RgbaImage};
+use library::LIBRARY;
+use std::path::Path;
 
 #[derive(ValueEnum, Clone)]
 enum CliDeltaMethods {
@@ -32,7 +33,7 @@ struct Args {
     method: CliDeltaMethods,
 
     /// which palette to use
-    #[clap(long, short = 'p', default_value = "Catppuccin")]
+    #[clap(long, short = 'p', default_value = "catppuccin")]
     palette: String,
 
     /// which flavour of the palette to use, defaults to the first entry
@@ -57,6 +58,29 @@ fn main() {
 
     let method = parse_de_method(args.method);
 
+    let file_path = Path::new(&args.input);
+    println!("Reading image from {:?}", file_path);
+    let file_ext = file_path.extension().unwrap().to_str().unwrap();
+
+    let colorscheme = LIBRARY.get(&args.palette).unwrap_or_else(|| {
+        eprintln!("Could not find palette: {}", args.palette);
+        eprintln!("Available palettes: {:?}", LIBRARY.keys());
+        std::process::exit(1);
+    });
+
+    let palette: Palette = if args.flavour.is_empty() {
+        colorscheme.values().next().unwrap().clone()
+    } else {
+        colorscheme
+            .get(&args.flavour)
+            .unwrap_or_else(|| {
+                eprintln!("Could not find flavour: {}", args.flavour);
+                eprintln!("Available flavours: {:?}", colorscheme.keys());
+                std::process::exit(1);
+            })
+            .clone()
+    };
+
     let img: RgbaImage = match image::open(args.input) {
         Ok(img) => img.to_rgba8(),
         Err(e) => {
@@ -65,50 +89,9 @@ fn main() {
         }
     };
 
-    let library: Library = Library::default();
-
-    // handle missing palettes
-    let palette = match library.get_palette(&args.palette) {
-        Some(palette) => palette,
-        None => {
-            let available_palettes = library
-                .palettes
-                .iter()
-                .map(|p| p.name.clone())
-                .collect::<Vec<_>>();
-            eprintln!("Could not find palette {}", args.palette);
-            eprintln!("Available palettes: {:?}", available_palettes);
-            std::process::exit(1);
-        }
-    };
-    if args.verbose {
-        println!("Using palette {}", palette.name);
-    }
-
-    // get the first flavour if no flavour is specified
-    let flavour: Flavour = if args.flavour.is_empty() {
-        palette.flavours[0].clone()
-    } else {
-        // handle wrong flavour names
-        match palette.get_flavour(&args.flavour) {
-            Some(p) => p.clone(),
-            None => {
-                let available_flavours: Vec<&str> =
-                    palette.flavours.iter().map(|f| f.name.as_str()).collect();
-
-                eprintln!("Could not find flavour {}", args.flavour);
-                eprintln!("Available flavours: {:?}", available_flavours);
-                std::process::exit(1);
-            }
-        }
-    };
-    if args.verbose {
-        println!("Using flavour: {}", flavour.name);
-    }
-
     let width = img.width();
     let height = img.height();
-    let result = faerber::convert(img, method, &flavour.get_labs());
+    let result = faerber::convert(img, method, &get_labs(palette));
 
     match image::save_buffer(
         args.output,
