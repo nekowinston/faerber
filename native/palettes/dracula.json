@@ -1,0 +1,93 @@
+{
+  "Classic": {
+    "background": "#282a36",
+    "selection": "#44475a",
+    "foreground": "#f8f8f2",
+    "comment": "#6272a4",
+    "cyan": "#8be9fd",
+    "green": "#50fa7b",
+    "orange": "#ffb86c",
+    "pink": "#ff79c6",
+    "purple": "#bd93f9",
+    "red": "#ff5555",
+    "yellow": "#f1fa8c"
+  },
+  "Pro": {
+    "foreground": "#F8F8F2",
+    "cyan": "#80FFEA",
+    "green": "#8AFF80",
+    "orange": "#FFCA80",
+    "pink": "#FF80BF",
+    "purple": "#9580FF",
+    "red": "#FF9580",
+    "yellow": "#FFFF80",
+    "background": "#22212C",
+    "comment": "#7970A9",
+    "selection": "#454158"
+  },
+  "Blade": {
+    "foreground": "#F8F8F2",
+    "cyan": "#80FFEA",
+    "green": "#8AFF80",
+    "orange": "#FFCA80",
+    "pink": "#FF80BF",
+    "purple": "#9580FF",
+    "red": "#FF9580",
+    "yellow": "#FFFF80",
+    "background": "#212C2A",
+    "comment": "#70A99F",
+    "selection": "#415854"
+  },
+  "Buffy": {
+    "foreground": "#F8F8F2",
+    "cyan": "#80FFEA",
+    "green": "#8AFF80",
+    "orange": "#FFCA80",
+    "pink": "#FF80BF",
+    "purple": "#9580FF",
+    "red": "#FF9580",
+    "yellow": "#FFFF80",
+    "background": "#2A212C",
+    "comment": "#9F70A9",
+    "selection": "#544158"
+  },
+  "Lincoln": {
+    "foreground": "#F8F8F2",
+    "cyan": "#80FFEA",
+    "green": "#8AFF80",
+    "orange": "#FFCA80",
+    "pink": "#FF80BF",
+    "purple": "#9580FF",
+    "red": "#FF9580",
+    "yellow": "#FFFF80",
+    "background": "#2C2A21",
+    "comment": "#A99F70",
+    "selection": "#585441"
+  },
+  "Morbius": {
+    "foreground": "#F8F8F2",
+    "cyan": "#80FFEA",
+    "green": "#8AFF80",
+    "orange": "#FFCA80",
+    "pink": "#FF80BF",
+    "purple": "#9580FF",
+    "red": "#FF9580",
+    "yellow": "#FFFF80",
+    "background": "#2C2122",
+    "comment": "#A97079",
+    "selection": "#584145"
+  },
+  "Van Helsing": {
+    "foreground": "#F8F8F2",
+    "cyan": "#80FFEA",
+    "green": "#8AFF80",
+    "orange": "#FFCA80",
+    "pink": "#FF80BF",
+    "purple": "#9580FF",
+    "red": "#FF9580",
+    "yellow": "#FFFF80",
+    "background": "#0B0D0F",
+    "comment": "#708CA9",
+    "selection": "#414D58"
+  }
+}
