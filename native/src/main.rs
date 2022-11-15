@@ -1,8 +1,10 @@
+// vim:fdm=marker
 mod library;
 
 use crate::library::{get_labs, Palette};
 use clap::{arg, command, value_parser, Arg, ArgAction, ValueEnum};
 use faerber::DEMethod;
+use faerber::Lab;
 use image::{EncodableLayout, RgbaImage};
 use library::LIBRARY;
 use std::path::Path;
@@ -37,7 +39,7 @@ fn main() {
         .arg(
             arg!([output] "Output file")
                 .required(true)
-                .value_parser(value_parser!(PathBuf)),
+                .value_parser(value_parser!(String)),
         )
         .arg(
             Arg::new("method")
@@ -53,12 +55,7 @@ fn main() {
                 .value_parser(value_parser!(String))
                 .default_value("catppuccin"),
         )
-        .arg(
-            Arg::new("flavour")
-                .short('f')
-                .long("flavour")
-                .default_value("mocha"),
-        )
+        .arg(Arg::new("flavour").short('f').long("flavour").num_args(1..))
         .arg(
             Arg::new("verbose")
                 .short('v')
@@ -68,36 +65,56 @@ fn main() {
         .get_matches();
 
     let input = matches.get_one::<PathBuf>("input").expect("required");
-    let output = matches.get_one::<PathBuf>("output").expect("required");
+    let output = matches.get_one::<String>("output").expect("required");
     let method: DEMethod = matches
         .get_one::<CliDeltaMethods>("method")
         .expect("required")
         .to_owned()
         .into();
     let palette = matches.get_one::<String>("palette").expect("required");
-    let flavour = matches.get_one::<String>("flavour").expect("required");
+    let flavour = matches.get_many::<String>("flavour");
 
     let file_path = Path::new(input);
     println!("Reading image from {:?}", file_path);
-    let file_ext = file_path.extension().unwrap().to_str().unwrap();
+    let _file_ext = file_path.extension().unwrap().to_str().unwrap();
 
     let colorscheme = LIBRARY.get(palette).unwrap_or_else(|| {
         eprintln!("Could not find palette: {}", palette);
-        eprintln!("Available palettes: {:?}", LIBRARY.keys());
+        eprintln!(
+            "Available palettes: {:?}",
+            LIBRARY.keys().map(|s| s.to_lowercase()).collect::<Vec<_>>()
+        );
         std::process::exit(1);
     });
 
-    let palette: Palette = if flavour.is_empty() {
-        colorscheme.values().next().unwrap().clone()
-    } else {
-        colorscheme
-            .get(flavour)
-            .unwrap_or_else(|| {
-                eprintln!("Could not find flavour: {}", flavour);
-                eprintln!("Available flavours: {:?}", colorscheme.keys());
-                std::process::exit(1);
-            })
-            .clone()
+    let labs: Vec<Lab> = match flavour {
+        Some(flavour) => {
+            let mut labs: Vec<Lab> = vec![];
+            for f in flavour {
+                if colorscheme.contains_key(f) {
+                    labs.append(&mut get_labs(colorscheme.get(f).unwrap().to_owned()));
+                } else {
+                    eprintln!("Could not find flavour: {}", f);
+                    eprintln!(
+                        "Available flavours: {:?}",
+                        colorscheme
+                            .keys()
+                            .map(|s| s.to_lowercase())
+                            .collect::<Vec<_>>()
+                    );
+                    std::process::exit(1);
+                }
+            }
+            labs
+        }
+        None => {
+            let palette: Palette = colorscheme
+                .values()
+                .next()
+                .expect("palette should have a flavour")
+                .to_owned();
+            get_labs(palette)
+        }
     };
 
     let img: RgbaImage = match image::open(input) {
@@ -108,15 +125,13 @@ fn main() {
         }
     };
 
-    let width = img.width();
-    let height = img.height();
-    let result = faerber::convert(img, method.to_owned(), &get_labs(palette));
+    let result = faerber::convert(img.to_owned(), method.to_owned(), &labs);
 
     match image::save_buffer(
         output,
         result.as_bytes(),
-        width,
-        height,
+        img.width(),
+        img.height(),
         image::ColorType::Rgba8,
     ) {
         Ok(_) => std::process::exit(0),
