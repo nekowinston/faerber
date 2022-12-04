@@ -4,6 +4,7 @@ version = "0.2.0"
 edition = "2021"
 
 [dependencies]
+base64 = "0.13.1"
 css-color = "0.2.4"
 deltae = "0.3.0"
 image = "0.24.5"

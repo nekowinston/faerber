@@ -1,6 +1,7 @@
 pub mod custom_lab;
 
 pub use crate::custom_lab::Lab;
+use base64::{decode, encode};
 use css_color::Srgb;
 pub use deltae::DEMethod;
 use deltae::DeltaE;
@@ -72,6 +73,33 @@ pub fn convert_vector(source: &str, convert_method: DEMethod, labs: &Vec<Lab>) -
                             Attribute {
                                 key: attr.key,
                                 value: Cow::Owned(rgba_color.as_bytes().to_vec()),
+                            }
+                        }
+                        QName(b"href") => {
+                            let value = String::from_utf8(attr.value.to_vec()).unwrap();
+                            if value.starts_with("data:image/") {
+                                let data = value.split(",").collect::<Vec<&str>>()[1];
+                                let decoded = decode(data).unwrap();
+                                let image: RgbaImage =
+                                    image::load_from_memory(&decoded).unwrap().to_rgba8();
+                                let converted = convert(image.clone(), convert_method, labs);
+                                let mut buffer = Cursor::new(Vec::new());
+                                let _ = image::write_buffer_with_format(
+                                    &mut buffer,
+                                    &converted,
+                                    image.width(),
+                                    image.height(),
+                                    image::ColorType::Rgba8,
+                                    image::ImageFormat::Png,
+                                );
+                                let encoded = encode(buffer.get_ref());
+                                let href = format!("data:image/png;base64,{}", encoded);
+                                Attribute {
+                                    key: attr.key,
+                                    value: Cow::Owned(href.as_bytes().to_vec()),
+                                }
+                            } else {
+                                attr
                             }
                         }
                         _ => attr,
