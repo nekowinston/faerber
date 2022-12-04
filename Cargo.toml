@@ -4,10 +4,12 @@ version = "0.2.0"
 edition = "2021"
 
 [dependencies]
+css-color = "0.2.4"
 deltae = "0.3.0"
 image = "0.24.5"
 lab = "0.11.0"
 rayon = "1.5.3"
+quick-xml = "0.26.0"
 
 [profile.release]
 lto = true

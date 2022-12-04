@@ -7,6 +7,8 @@ use faerber::DEMethod;
 use faerber::Lab;
 use image::{EncodableLayout, RgbaImage};
 use library::LIBRARY;
+use std::fs::File;
+use std::io::prelude::*;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -76,7 +78,7 @@ fn main() {
 
     let file_path = Path::new(input);
     println!("Reading image from {:?}", file_path);
-    let _file_ext = file_path.extension().unwrap().to_str().unwrap();
+    let file_ext = file_path.extension().unwrap().to_str().unwrap();
 
     let colorscheme = LIBRARY.get(palette).unwrap_or_else(|| {
         eprintln!("Could not find palette: {}", palette);
@@ -117,24 +119,34 @@ fn main() {
         }
     };
 
-    let img: RgbaImage = match image::open(input) {
-        Ok(img) => img.to_rgba8(),
-        Err(e) => {
-            eprintln!("Could not open image: {}", e);
-            std::process::exit(1);
-        }
-    };
+    if file_ext != "svg" {
+        let img: RgbaImage = match image::open(input) {
+            Ok(img) => img.to_rgba8(),
+            Err(e) => {
+                eprintln!("Could not open image: {}", e);
+                std::process::exit(1);
+            }
+        };
 
-    let result = faerber::convert(img.to_owned(), method.to_owned(), &labs);
+        let result = faerber::convert(img.to_owned(), method.to_owned(), &labs);
 
-    match image::save_buffer(
-        output,
-        result.as_bytes(),
-        img.width(),
-        img.height(),
-        image::ColorType::Rgba8,
-    ) {
-        Ok(_) => std::process::exit(0),
-        Err(e) => eprintln!("Could not save image: {}", e),
-    };
+        match image::save_buffer(
+            output,
+            result.as_bytes(),
+            img.width(),
+            img.height(),
+            image::ColorType::Rgba8,
+        ) {
+            Ok(_) => std::process::exit(0),
+            Err(e) => eprintln!("Could not save image: {}", e),
+        };
+    } else {
+        let mut fp = File::open(input).unwrap();
+        let mut contents = String::new();
+        fp.read_to_string(&mut contents).unwrap();
+        let result = faerber::convert_vector(&contents, method.to_owned(), &labs);
+        println!("{}", result);
+        let mut fp = File::create(output).unwrap();
+        fp.write_all(result.as_bytes()).unwrap();
+    }
 }
