@@ -1,11 +1,18 @@
 pub mod custom_lab;
 
 pub use crate::custom_lab::Lab;
+use css_color::Srgb;
 pub use deltae::DEMethod;
 use deltae::DeltaE;
 use image::buffer::Pixels;
 use image::{Rgba, RgbaImage};
+use quick_xml::events::Event;
+use quick_xml::reader::Reader;
+use quick_xml::writer::Writer;
+use quick_xml::{events::attributes::Attribute, name::QName};
 use rayon::prelude::*;
+use std::borrow::Cow;
+use std::io::Cursor;
 
 // used for the WASM library to convert the HEX colors to CIELAB
 pub fn convert_palette_to_lab(palette: &[u32]) -> Vec<Lab> {
@@ -32,6 +39,69 @@ pub fn parse_delta_e_method(method: String) -> DEMethod {
     };
 }
 
+pub fn convert_vector(source: &str, convert_method: DEMethod, labs: &Vec<Lab>) -> String {
+    let mut reader = Reader::from_str(source);
+    reader.trim_text(true);
+    let mut writer = Writer::new(Cursor::new(Vec::new()));
+
+    loop {
+        let event = reader.read_event();
+        match &event {
+            Ok(Event::Start(e)) | Ok(Event::Empty(e)) => {
+                let mut elem = e.to_owned();
+                let mod_attr = e.attributes().map(|attr| {
+                    let attr = attr.unwrap();
+                    match attr.key {
+                        QName(b"fill")
+                        | QName(b"stroke")
+                        | QName(b"stop-color")
+                        | QName(b"flood-color")
+                        | QName(b"lighting-color") => {
+                            let value = String::from_utf8(attr.value.to_vec()).unwrap();
+                            let p = value.parse::<Srgb>().unwrap();
+                            let lab = Lab::from_rgb(&[
+                                (p.red * 255.0) as u8,
+                                (p.green * 255.0) as u8,
+                                (p.blue * 255.0) as u8,
+                            ]);
+                            let converted = convert_color(convert_method, labs, &lab);
+                            let rgba_color = format!(
+                                "rgba({}, {}, {}, {})",
+                                converted[0], converted[1], converted[2], converted[3]
+                            );
+                            Attribute {
+                                key: attr.key,
+                                value: Cow::Owned(rgba_color.as_bytes().to_vec()),
+                            }
+                        }
+                        _ => attr,
+                    }
+                });
+                elem.clear_attributes();
+                elem.extend_attributes(mod_attr);
+                match &event {
+                    Ok(Event::Empty(..)) => {
+                        writer.write_event(Event::Empty(elem)).unwrap();
+                    }
+                    Ok(Event::Start(..)) => {
+                        writer.write_event(Event::Start(elem)).unwrap();
+                    }
+                    _ => unreachable!(),
+                }
+            }
+            Ok(Event::Eof) => break,
+            // we can either move or borrow the event to write, depending on your use-case
+            Ok(e) => assert!({
+                println!("closing {:?}", e);
+                writer.write_event(e).is_ok()
+            }),
+            Err(e) => panic!("Error at position {}: {:?}", reader.buffer_position(), e),
+        }
+    }
+    let result = writer.into_inner().into_inner();
+    String::from_utf8(result).unwrap()
+}
+
 pub fn convert(img: RgbaImage, convert_method: DEMethod, labs: &Vec<Lab>) -> Vec<u8> {
     // convert the RGBA pixels in the image to LAB values
     let img_labs = rgba_pixels_to_labs(img.pixels());
@@ -41,12 +111,12 @@ pub fn convert(img: RgbaImage, convert_method: DEMethod, labs: &Vec<Lab>) -> Vec
     return if convert_method != DEMethod::DE2000 {
         img_labs
             .iter()
-            .flat_map(|lab| convert_loop(convert_method, labs, lab))
+            .flat_map(|lab| convert_color(convert_method, labs, lab))
             .collect()
     } else {
         img_labs
             .par_iter()
-            .flat_map(|lab| convert_loop(convert_method, labs, lab))
+            .flat_map(|lab| convert_color(convert_method, labs, lab))
             .collect()
     };
 }
@@ -55,7 +125,7 @@ pub fn rgba_pixels_to_labs(img_pixels: Pixels<Rgba<u8>>) -> Vec<Lab> {
     img_pixels.map(|pixel| Lab::from_rgba(&pixel.0)).collect()
 }
 
-pub fn convert_loop(convert_method: DEMethod, palette: &Vec<Lab>, lab: &Lab) -> [u8; 4] {
+pub fn convert_color(convert_method: DEMethod, palette: &Vec<Lab>, lab: &Lab) -> [u8; 4] {
     // keep track of the closest color
     let mut closest_color: Lab = Default::default();
     // keep track of the closest distance measured, initially set as high as possible

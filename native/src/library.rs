@@ -26,13 +26,13 @@ lazy_static::lazy_static! {
                     (k.to_string(), u32::from_str_radix(hex, 16).unwrap())
                 }).collect();
 
-                color_scheme.insert(k.to_string().replace(" ", "_").to_lowercase(), palette);
+                color_scheme.insert(k.to_string().replace(' ', "_").to_lowercase(), palette);
             });
 
-            library.insert(name.to_string().replace(" ", "_").to_lowercase(), color_scheme);
+            library.insert(name.to_string().replace(' ', "_").to_lowercase(), color_scheme);
         }
 
-        return library;
+        library
     };
 }
 
