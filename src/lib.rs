@@ -9,7 +9,9 @@ use image::{Rgba, RgbaImage};
 use quick_xml::events::Event;
 use quick_xml::reader::Reader;
 use quick_xml::writer::Writer;
+use quick_xml::{events::attributes::Attribute, name::QName};
 use rayon::prelude::*;
+use std::borrow::Cow;
 use std::io::Cursor;
 
 // used for the WASM library to convert the HEX colors to CIELAB
@@ -38,22 +40,15 @@ pub fn parse_delta_e_method(method: String) -> DEMethod {
 }
 
 pub fn convert_vector(source: &str, convert_method: DEMethod, labs: &Vec<Lab>) -> String {
-    use quick_xml::{events::attributes::Attribute, name::QName};
-    use std::borrow::Cow;
-
-    // let mut xml = File::open(fp).unwrap();
-    // let mut contents = String::new();
-    // xml.read_to_string(&mut contents).unwrap();
-
-    let mut reader = Reader::from_str(&source);
+    let mut reader = Reader::from_str(source);
     reader.trim_text(true);
     let mut writer = Writer::new(Cursor::new(Vec::new()));
+
     loop {
         let event = reader.read_event();
         match &event {
             Ok(Event::Start(e)) | Ok(Event::Empty(e)) => {
                 let mut elem = e.to_owned();
-                println!("{:?}", elem);
                 let mod_attr = e.attributes().map(|attr| {
                     let attr = attr.unwrap();
                     match attr.key {
@@ -69,25 +64,17 @@ pub fn convert_vector(source: &str, convert_method: DEMethod, labs: &Vec<Lab>) -
                                 (p.green * 255.0) as u8,
                                 (p.blue * 255.0) as u8,
                             ]);
-                            let converted = convert_color(convert_method, &labs, &lab);
+                            let converted = convert_color(convert_method, labs, &lab);
                             let rgba_color = format!(
-                                "rgba({} , {}, {}, {})",
+                                "rgba({}, {}, {}, {})",
                                 converted[0], converted[1], converted[2], converted[3]
                             );
-                            // attr.value = rgba_color.as_bytes().to_vec();
                             Attribute {
                                 key: attr.key,
                                 value: Cow::Owned(rgba_color.as_bytes().to_vec()),
                             }
                         }
-                        _ => {
-                            println!(
-                                "other\n{:?}: {}",
-                                attr.key,
-                                String::from_utf8(attr.value.to_vec()).unwrap()
-                            );
-                            attr
-                        }
+                        _ => attr,
                     }
                 });
                 elem.clear_attributes();
@@ -112,7 +99,7 @@ pub fn convert_vector(source: &str, convert_method: DEMethod, labs: &Vec<Lab>) -
         }
     }
     let result = writer.into_inner().into_inner();
-    return String::from_utf8(result).unwrap();
+    String::from_utf8(result).unwrap()
 }
 
 pub fn convert(img: RgbaImage, convert_method: DEMethod, labs: &Vec<Lab>) -> Vec<u8> {

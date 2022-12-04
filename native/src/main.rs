@@ -20,9 +20,9 @@ enum CliDeltaMethods {
     De2000,
 }
 
-impl Into<DEMethod> for CliDeltaMethods {
-    fn into(self) -> DEMethod {
-        match self {
+impl From<CliDeltaMethods> for DEMethod {
+    fn from(val: CliDeltaMethods) -> Self {
+        match val {
             CliDeltaMethods::De76 => DEMethod::DE1976,
             CliDeltaMethods::De94t => DEMethod::DE1994T,
             CliDeltaMethods::De94g => DEMethod::DE1994T,
