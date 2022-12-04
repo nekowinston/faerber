@@ -58,8 +58,12 @@ pub fn convert_vector(source: &str, convert_method: DEMethod, labs: &Vec<Lab>) -
                         | QName(b"stop-color")
                         | QName(b"flood-color")
                         | QName(b"lighting-color") => {
+                            if attr.value.starts_with(b"url(") || attr.value == b"none".as_slice() {
+                                return attr;
+                            }
+
                             let value = String::from_utf8(attr.value.to_vec()).unwrap();
-                            let p = value.parse::<Srgb>().unwrap();
+                            let p = value.parse::<Srgb>().expect("Invalid color");
                             let lab = Lab::from_rgb(&[
                                 (p.red * 255.0) as u8,
                                 (p.green * 255.0) as u8,
@@ -78,7 +82,7 @@ pub fn convert_vector(source: &str, convert_method: DEMethod, labs: &Vec<Lab>) -
                         QName(b"href") => {
                             let value = String::from_utf8(attr.value.to_vec()).unwrap();
                             if value.starts_with("data:image/") {
-                                let data = value.split(",").collect::<Vec<&str>>()[1];
+                                let data = value.split(',').collect::<Vec<&str>>()[1];
                                 let decoded = decode(data).unwrap();
                                 let image: RgbaImage =
                                     image::load_from_memory(&decoded).unwrap().to_rgba8();
