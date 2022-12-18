@@ -70,13 +70,22 @@ pub fn convert_vector(source: &str, convert_method: DEMethod, labs: &Vec<Lab>) -
                                 (p.blue * 255.0) as u8,
                             ]);
                             let converted = convert_color(convert_method, labs, &lab);
-                            let rgba_color = format!(
-                                "rgba({}, {}, {}, {})",
-                                converted[0], converted[1], converted[2], converted[3]
-                            );
+
+                            let new_color = if converted[3] == 255 {
+                                format!(
+                                    "#{:02x}{:02x}{:02x}",
+                                    converted[0], converted[1], converted[2]
+                                )
+                            } else {
+                                format!(
+                                    "#{:02x}{:02x}{:02x}{:02x}",
+                                    converted[0], converted[1], converted[2], converted[3]
+                                )
+                            };
+
                             Attribute {
                                 key: attr.key,
-                                value: Cow::Owned(rgba_color.as_bytes().to_vec()),
+                                value: Cow::Owned(new_color.as_bytes().to_vec()),
                             }
                         }
                         QName(b"href") => {
