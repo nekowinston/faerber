@@ -1,12 +1,13 @@
 // vim:fdm=marker
 mod library;
 
+use crate::library::ColorScheme;
 use crate::library::{get_labs, Palette};
 use clap::{arg, command, value_parser, Arg, ArgAction, ValueEnum};
 use faerber::DEMethod;
 use faerber::Lab;
 use image::{EncodableLayout, RgbaImage};
-use library::LIBRARY;
+use library::{parse_colorscheme, LIBRARY};
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
@@ -80,13 +81,15 @@ fn main() {
     println!("Reading image from {:?}", file_path);
     let file_ext = file_path.extension().unwrap().to_str().unwrap();
 
+    let mut custom_colorscheme: ColorScheme = ColorScheme::new();
     let colorscheme = LIBRARY.get(palette).unwrap_or_else(|| {
-        eprintln!("Could not find palette: {}", palette);
-        eprintln!(
-            "Available palettes: {:?}",
-            LIBRARY.keys().map(|s| s.to_lowercase()).collect::<Vec<_>>()
-        );
-        std::process::exit(1);
+        let mut file = File::open(palette).expect("file not found");
+        let mut contents = String::new();
+        file.read_to_string(&mut contents)
+            .expect("something went wrong reading the file");
+
+        custom_colorscheme = parse_colorscheme(serde_json::from_str(&contents).unwrap());
+        &custom_colorscheme
     });
 
     let labs: Vec<Lab> = match flavour {
