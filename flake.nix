@@ -21,7 +21,11 @@
         devShells.default = pkgs.mkShell {
           buildInputs = with pkgs; [
             cargo
+            clippy
+            openssl
+            pkg-config
             rustc
+            rustfmt
           ];
         };
         packages = rec {

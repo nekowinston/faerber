@@ -1,13 +1,9 @@
 // vim:fdm=marker
-mod library;
-
-use crate::library::ColorScheme;
-use crate::library::{get_labs, Palette};
 use clap::{arg, command, value_parser, Arg, ArgAction, ValueEnum};
+use faerber::{get_labs, parse_colorscheme, ColorScheme, Palette, LIBRARY};
 use faerber_lib::DEMethod;
 use faerber_lib::Lab;
 use image::{EncodableLayout, RgbaImage};
-use library::{parse_colorscheme, LIBRARY};
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
