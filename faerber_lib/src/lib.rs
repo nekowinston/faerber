@@ -1,7 +1,7 @@
 pub mod custom_lab;
 
 pub use crate::custom_lab::Lab;
-use base64::{decode, encode};
+use base64::{engine::general_purpose::STANDARD as base64, Engine as _};
 use css_color::Srgb;
 pub use deltae::DEMethod;
 use deltae::DeltaE;
@@ -92,7 +92,7 @@ pub fn convert_vector(source: &str, convert_method: DEMethod, labs: &Vec<Lab>) -
                             let value = String::from_utf8(attr.value.to_vec()).unwrap();
                             if value.starts_with("data:image/") {
                                 let data = value.split(',').collect::<Vec<&str>>()[1];
-                                let decoded = decode(data).unwrap();
+                                let decoded = base64.decode(data).unwrap();
                                 let image: RgbaImage =
                                     image::load_from_memory(&decoded).unwrap().to_rgba8();
                                 let converted = convert(image.clone(), convert_method, labs);
@@ -105,7 +105,7 @@ pub fn convert_vector(source: &str, convert_method: DEMethod, labs: &Vec<Lab>) -
                                     image::ColorType::Rgba8,
                                     image::ImageFormat::Png,
                                 );
-                                let encoded = encode(buffer.get_ref());
+                                let encoded = base64.encode(buffer.get_ref());
                                 let href = format!("data:image/png;base64,{}", encoded);
                                 Attribute {
                                     key: attr.key,
