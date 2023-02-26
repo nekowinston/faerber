@@ -1,7 +1,7 @@
 pub type ColorScheme = HashMap<String, Palette>;
 pub type Library = HashMap<String, ColorScheme>;
 pub type Palette = HashMap<String, u32>;
-use faerber::custom_lab::Lab;
+use faerber_lib::custom_lab::Lab;
 use serde_json::Value;
 use std::collections::HashMap;
 

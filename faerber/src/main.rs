@@ -4,8 +4,8 @@ mod library;
 use crate::library::ColorScheme;
 use crate::library::{get_labs, Palette};
 use clap::{arg, command, value_parser, Arg, ArgAction, ValueEnum};
-use faerber::DEMethod;
-use faerber::Lab;
+use faerber_lib::DEMethod;
+use faerber_lib::Lab;
 use image::{EncodableLayout, RgbaImage};
 use library::{parse_colorscheme, LIBRARY};
 use std::fs::File;
@@ -131,7 +131,7 @@ fn main() {
             }
         };
 
-        let result = faerber::convert(img.to_owned(), method.to_owned(), &labs);
+        let result = faerber_lib::convert(img.to_owned(), method.to_owned(), &labs);
 
         match image::save_buffer(
             output,
@@ -147,7 +147,7 @@ fn main() {
         let mut fp = File::open(input).unwrap();
         let mut contents = String::new();
         fp.read_to_string(&mut contents).unwrap();
-        let result = faerber::convert_vector(&contents, method.to_owned(), &labs);
+        let result = faerber_lib::convert_vector(&contents, method.to_owned(), &labs);
         println!("{}", result);
         let mut fp = File::create(output).unwrap();
         fp.write_all(result.as_bytes()).unwrap();

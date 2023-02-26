@@ -1,7 +1,7 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 
 use deltae::DEMethod;
-use faerber::{convert, convert_loop, rgba_pixels_to_labs};
+use faerber_lib::{convert, convert_color, rgba_pixels_to_labs};
 use image::RgbaImage;
 use rand;
 
@@ -21,22 +21,22 @@ pub fn benchmark(c: &mut Criterion) {
         .pixels()
         .nth(rand::random::<usize>() % img.pixels().count())
         .expect("Image should have at least one pixel");
-    let random_lab = faerber::Lab::from_rgba(&random_pixel.0);
-    let palette = faerber::convert_palette_to_lab(colors);
+    let random_lab = faerber_lib::Lab::from_rgba(&random_pixel.0);
+    let palette = faerber_lib::convert_palette_to_lab(colors);
 
     c.benchmark_group("pixel")
         .sample_size(100)
         .bench_function("de1976", |b| {
-            b.iter(|| convert_loop(DEMethod::DE1976, &palette, &random_lab))
+            b.iter(|| convert_color(DEMethod::DE1976, &palette, &random_lab))
         })
         .bench_function("de1994g", |b| {
-            b.iter(|| convert_loop(DEMethod::DE1994G, &palette, &random_lab))
+            b.iter(|| convert_color(DEMethod::DE1994G, &palette, &random_lab))
         })
         .bench_function("de1994t", |b| {
-            b.iter(|| convert_loop(DEMethod::DE1994T, &palette, &random_lab))
+            b.iter(|| convert_color(DEMethod::DE1994T, &palette, &random_lab))
         })
         .bench_function("de2000", |b| {
-            b.iter(|| convert_loop(DEMethod::DE2000, &palette, &random_lab))
+            b.iter(|| convert_color(DEMethod::DE2000, &palette, &random_lab))
         });
 
     c.benchmark_group("image")
