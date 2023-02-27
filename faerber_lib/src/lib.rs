@@ -106,7 +106,7 @@ pub fn convert_vector(source: &str, convert_method: DEMethod, labs: &Vec<Lab>) -
                                     image::ImageFormat::Png,
                                 );
                                 let encoded = base64.encode(buffer.get_ref());
-                                let href = format!("data:image/png;base64,{}", encoded);
+                                let href = format!("data:image/png;base64,{encoded}");
                                 Attribute {
                                     key: attr.key,
                                     value: Cow::Owned(href.as_bytes().to_vec()),
@@ -133,7 +133,7 @@ pub fn convert_vector(source: &str, convert_method: DEMethod, labs: &Vec<Lab>) -
             Ok(Event::Eof) => break,
             // we can either move or borrow the event to write, depending on your use-case
             Ok(e) => assert!({
-                println!("closing {:?}", e);
+                println!("closing {e:?}");
                 writer.write_event(e).is_ok()
             }),
             Err(e) => panic!("Error at position {}: {:?}", reader.buffer_position(), e),

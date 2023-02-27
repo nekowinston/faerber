@@ -74,7 +74,7 @@ fn main() {
     let flavour = matches.get_many::<String>("flavour");
 
     let file_path = Path::new(input);
-    println!("Reading image from {:?}", file_path);
+    println!("Reading image from {file_path:?}");
     let file_ext = file_path.extension().unwrap().to_str().unwrap();
 
     let mut custom_colorscheme: ColorScheme = ColorScheme::new();
@@ -95,7 +95,7 @@ fn main() {
                 if colorscheme.contains_key(f) {
                     labs.append(&mut get_labs(colorscheme.get(f).unwrap().to_owned()));
                 } else {
-                    eprintln!("Could not find flavour: {}", f);
+                    eprintln!("Could not find flavour: {f}");
                     eprintln!(
                         "Available flavours: {:?}",
                         colorscheme
@@ -122,7 +122,7 @@ fn main() {
         let img: RgbaImage = match image::open(input) {
             Ok(img) => img.to_rgba8(),
             Err(e) => {
-                eprintln!("Could not open image: {}", e);
+                eprintln!("Could not open image: {e}");
                 std::process::exit(1);
             }
         };
@@ -137,14 +137,14 @@ fn main() {
             image::ColorType::Rgba8,
         ) {
             Ok(_) => std::process::exit(0),
-            Err(e) => eprintln!("Could not save image: {}", e),
+            Err(e) => eprintln!("Could not save image: {e}"),
         };
     } else {
         let mut fp = File::open(input).unwrap();
         let mut contents = String::new();
         fp.read_to_string(&mut contents).unwrap();
         let result = faerber_lib::convert_vector(&contents, method.to_owned(), &labs);
-        println!("{}", result);
+        println!("{result}");
         let mut fp = File::create(output).unwrap();
         fp.write_all(result.as_bytes()).unwrap();
     }
