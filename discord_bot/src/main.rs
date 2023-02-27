@@ -4,6 +4,7 @@ use faerber::{get_labs, LIBRARY};
 use faerber_lib::convert;
 use phf::phf_map;
 use poise::serenity_prelude::{self as serenity, Mentionable, ReactionType};
+use sha2::{Digest, Sha256};
 
 extern crate oxipng;
 
@@ -29,6 +30,17 @@ struct ConversionResult {
 async fn download_and_convert_image(url: &str, flavor: &str) -> Result<ConversionResult, Error> {
     let response = reqwest::get(url).await?;
     let bytes = response.bytes().await?;
+
+    let mut hasher = Sha256::new();
+    hasher.update(&bytes);
+    let hashed_file_name = format!("{:x}_{flavor}.png", hasher.finalize());
+    if PathBuf::from(&hashed_file_name).exists() {
+        return Ok(ConversionResult {
+            path: hashed_file_name.into(),
+            // this doesn't really matter here
+            downsized: false,
+        });
+    }
 
     let mut image = image::load_from_memory(&bytes).expect("Unable to open image");
     let mut imgsize = (image.width(), image.height());
@@ -59,11 +71,11 @@ async fn download_and_convert_image(url: &str, flavor: &str) -> Result<Conversio
         image::ImageFormat::Png,
     )?;
     let compressed = oxipng::optimize_from_memory(&c.into_inner(), &oxipng::Options::default())?;
-    let mut file = std::fs::File::create("cache.png")?;
+    let mut file = std::fs::File::create(&hashed_file_name)?;
     file.write_all(&compressed)?;
 
     Ok(ConversionResult {
-        path: "cache.png".into(),
+        path: hashed_file_name.into(),
         downsized,
     })
 }

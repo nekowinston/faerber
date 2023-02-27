@@ -10,6 +10,7 @@ image = "0.24.5"
 oxipng = "8.0.0"
 phf = { version = "0.11.1", features = ["macros"] }
 poise = "0.5.2"
+sha2 = "0.10.6"
 
 [dependencies.reqwest]
 version = "0.11.14"
@@ -17,7 +18,7 @@ features = ["blocking"]
 
 [dependencies.serenity]
 version = "0.11.5"
-default_features = false
+default-features = false
 features = ["client", "gateway", "rustls_backend", "model"]
 
 [dependencies.tokio]
