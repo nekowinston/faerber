@@ -1,22 +1,42 @@
-use std::time::Duration;
+use std::{path::PathBuf, time::Duration};
 
 use faerber::{get_labs, LIBRARY};
 use faerber_lib::convert;
-use image::RgbaImage;
-use poise::serenity_prelude::{self as serenity};
+use phf::phf_map;
+use poise::serenity_prelude::{self as serenity, Mentionable, ReactionType};
 
 struct Data {}
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
 
-async fn download_and_convert_image(url: &str, flavor: &str) -> Result<String, Error> {
+const MAX_WIDTH: u32 = 3840;
+const MAX_HEIGHT: u32 = 2160;
+
+const FLAVORS: phf::Map<&'static str, &'static str> = phf_map! {
+    "mocha" => "🌿 Mocha",
+    "macchiato" => "🌺 Macchiato",
+    "frappe" => "🪴 Frappé",
+    "latte" => "🌻 Latte",
+};
+
+struct ConversionResult {
+    path: PathBuf,
+    downsized: bool,
+}
+
+async fn download_and_convert_image(url: &str, flavor: &str) -> Result<ConversionResult, Error> {
     let response = reqwest::get(url).await?;
     let bytes = response.bytes().await?;
 
-    let image: RgbaImage = image::load_from_memory(&bytes)
-        .expect("Unable to open image")
-        .to_rgba8();
-    let imgsize = (image.width(), image.height());
+    let mut image = image::load_from_memory(&bytes).expect("Unable to open image");
+    let mut imgsize = (image.width(), image.height());
+    let mut downsized = false;
+
+    if imgsize.0 > MAX_WIDTH || imgsize.1 > MAX_HEIGHT {
+        image = image.resize_to_fill(MAX_WIDTH, MAX_HEIGHT, image::imageops::FilterType::Lanczos3);
+        imgsize = (image.width(), image.height());
+        downsized = true;
+    }
 
     let flavor = LIBRARY
         .get("catppuccin")
@@ -26,7 +46,7 @@ async fn download_and_convert_image(url: &str, flavor: &str) -> Result<String, E
 
     let labs = get_labs(flavor.clone());
 
-    let result = convert(image, faerber_lib::DEMethod::DE2000, &labs);
+    let result = convert(image.to_rgba8(), faerber_lib::DEMethod::DE2000, &labs);
     let _r = image::save_buffer(
         "cache.png",
         &result,
@@ -35,7 +55,19 @@ async fn download_and_convert_image(url: &str, flavor: &str) -> Result<String, E
         image::ColorType::Rgba8,
     );
 
-    Ok("cache.png".to_string())
+    Ok(ConversionResult {
+        path: "cache.png".into(),
+        downsized,
+    })
+}
+
+fn create_button(label: &str, emoji: ReactionType, id: &str) -> serenity::CreateButton {
+    let mut b = serenity::CreateButton::default();
+    b.custom_id(id);
+    b.label(label);
+    b.emoji(emoji);
+    b.style(serenity::ButtonStyle::Primary);
+    b
 }
 
 async fn ask_for_flavor(ctx: Context<'_>) -> Result<serenity::Message, serenity::Error> {
@@ -44,16 +76,14 @@ async fn ask_for_flavor(ctx: Context<'_>) -> Result<serenity::Message, serenity:
             .content("What flavor do you want?")
             .components(|c| {
                 c.create_action_row(|row| {
-                    row.create_select_menu(|menu| {
-                        menu.custom_id("flavor_select");
-                        menu.placeholder("No flavor selected");
-                        menu.options(|o| {
-                            o.create_option(|opt| opt.label("🌿 Mocha").value("mocha"));
-                            o.create_option(|opt| opt.label("🌺 Macchiato").value("macchiato"));
-                            o.create_option(|opt| opt.label("🪴 Frappe").value("frappe"));
-                            o.create_option(|opt| opt.label("🌻 Latte").value("latte"))
-                        })
-                    })
+                    row.add_button(create_button("Mocha", "🌿".parse().unwrap(), "mocha"));
+                    row.add_button(create_button(
+                        "Macchiato",
+                        "🌺".parse().unwrap(),
+                        "macchiato",
+                    ));
+                    row.add_button(create_button("Frappe", "🪴".parse().unwrap(), "frappe"));
+                    row.add_button(create_button("Latte", "🌻".parse().unwrap(), "latte"))
                 })
             })
     })
@@ -68,8 +98,8 @@ async fn faerber(
     #[description = "Faerber"] message: serenity::Message,
 ) -> Result<(), Error> {
     if message.attachments.is_empty() {
-        ctx.defer_ephemeral().await?;
-        ctx.say("No attachments found").await?;
+        ctx.send(|m| m.ephemeral(true).content("No attachments found"))
+            .await?;
         return Ok(());
     } else {
         ctx.defer().await?;
@@ -83,8 +113,11 @@ async fn faerber(
         }
     }
     if non_image_attachments {
-        ctx.defer_ephemeral().await?;
-        ctx.say("Unsupported attachments on that message").await?;
+        ctx.send(|m| {
+            m.ephemeral(true)
+                .content("Unsupported attachments on that message")
+        })
+        .await?;
         return Ok(());
     }
 
@@ -97,17 +130,27 @@ async fn faerber(
         .timeout(Duration::from_secs(30));
 
     if let Some(item) = interaction.await {
-        let flavor = &item.data.values[0];
-        download_and_convert_image(url, flavor).await?;
+        let flavor = &item.data.custom_id;
+        let flavorname = FLAVORS[flavor];
+
         item.create_interaction_response(&ctx, |r| {
-            r.kind(serenity::InteractionResponseType::ChannelMessageWithSource)
-                .interaction_response_data(|d| {
-                    d.content(format!("Here's your picture in {}!", item.data.values[0]))
-                        .add_file("./cache.png")
-                })
+            r.kind(serenity::InteractionResponseType::DeferredUpdateMessage)
         })
         .await?;
+
+        let converted = download_and_convert_image(url, flavor).await?;
+        let user = ctx.author().mention();
         msg.delete(&ctx).await?;
+        msg.channel_id
+            .send_message(&ctx, |m| {
+                let mut text: String = format!("Here's your image in {flavorname} - requested by {user}");
+                // add note if the image was downsized
+                if converted.downsized {
+                    text.push_str(&format!("\nImage sizes are limited to {MAX_WIDTH}x{MAX_HEIGHT}. Please use the CLI or web app for the full resolution."))
+                }
+                m.content(text).add_file(&converted.path)
+            })
+            .await?;
 
         return Ok(());
     }
