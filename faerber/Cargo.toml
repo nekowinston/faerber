@@ -19,3 +19,4 @@ serde_json = "1.0.85"
 lazy_static = "1.4.0"
 faerber_lib = { path = "../faerber_lib" }
 image = "0.24.1"
+oxipng = "8.0.0"

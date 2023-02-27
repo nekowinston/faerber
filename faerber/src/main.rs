@@ -3,11 +3,14 @@ use clap::{arg, command, value_parser, Arg, ArgAction, ValueEnum};
 use faerber::{get_labs, parse_colorscheme, ColorScheme, Palette, LIBRARY};
 use faerber_lib::DEMethod;
 use faerber_lib::Lab;
-use image::{EncodableLayout, RgbaImage};
+use image::RgbaImage;
 use std::fs::File;
 use std::io::prelude::*;
+use std::io::{Cursor, Write};
 use std::path::Path;
 use std::path::PathBuf;
+
+extern crate oxipng;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, ValueEnum)]
 enum CliDeltaMethods {
@@ -128,17 +131,20 @@ fn main() {
         };
 
         let result = faerber_lib::convert(img.to_owned(), method.to_owned(), &labs);
-
-        match image::save_buffer(
-            output,
-            result.as_bytes(),
+        let mut c = Cursor::new(Vec::new());
+        image::write_buffer_with_format(
+            &mut c,
+            &result,
             img.width(),
             img.height(),
             image::ColorType::Rgba8,
-        ) {
-            Ok(_) => std::process::exit(0),
-            Err(e) => eprintln!("Could not save image: {e}"),
-        };
+            image::ImageFormat::Png,
+        )
+        .expect("Could not write to buffer");
+        let compressed = oxipng::optimize_from_memory(&c.into_inner(), &oxipng::Options::default());
+        let mut file = std::fs::File::create(output).expect("Could not create file");
+        file.write_all(&compressed.expect("Could not compress file"))
+            .expect("Could not write to file");
     } else {
         let mut fp = File::open(input).unwrap();
         let mut contents = String::new();

@@ -602,6 +602,7 @@ dependencies = [
  "faerber_lib",
  "image",
  "lazy_static",
+ "oxipng",
  "serde",
  "serde_json",
 ]
