@@ -1,4 +1,8 @@
-use std::{path::PathBuf, time::Duration, io::{Cursor, Write}};
+use std::{
+    io::{Cursor, Write},
+    path::PathBuf,
+    time::Duration,
+};
 
 use faerber::{get_labs, LIBRARY};
 use faerber_lib::convert;
