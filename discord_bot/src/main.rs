@@ -1,9 +1,11 @@
-use std::{path::PathBuf, time::Duration};
+use std::{path::PathBuf, time::Duration, io::{Cursor, Write}};
 
 use faerber::{get_labs, LIBRARY};
 use faerber_lib::convert;
 use phf::phf_map;
 use poise::serenity_prelude::{self as serenity, Mentionable, ReactionType};
+
+extern crate oxipng;
 
 struct Data {}
 type Error = Box<dyn std::error::Error + Send + Sync>;
@@ -47,13 +49,18 @@ async fn download_and_convert_image(url: &str, flavor: &str) -> Result<Conversio
     let labs = get_labs(flavor.clone());
 
     let result = convert(image.to_rgba8(), faerber_lib::DEMethod::DE2000, &labs);
-    let _r = image::save_buffer(
-        "cache.png",
+    let mut c = Cursor::new(Vec::new());
+    image::write_buffer_with_format(
+        &mut c,
         &result,
         imgsize.0,
         imgsize.1,
         image::ColorType::Rgba8,
-    );
+        image::ImageFormat::Png,
+    )?;
+    let compressed = oxipng::optimize_from_memory(&c.into_inner(), &oxipng::Options::default())?;
+    let mut file = std::fs::File::create("cache.png")?;
+    file.write_all(&compressed)?;
 
     Ok(ConversionResult {
         path: "cache.png".into(),

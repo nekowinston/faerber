@@ -7,6 +7,7 @@ edition = "2021"
 faerber = { path = "../faerber" }
 faerber_lib = { path = "../faerber_lib" }
 image = "0.24.5"
+oxipng = "8.0.0"
 phf = { version = "0.11.1", features = ["macros"] }
 poise = "0.5.2"
 
