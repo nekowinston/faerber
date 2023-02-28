@@ -1,5 +1,5 @@
 [workspace]
-members = ["faerber_lib", "faerber"]
+members = ["discord_bot", "faerber_lib", "faerber"]
 default-members = ["faerber"]
 
 [profile.release]
