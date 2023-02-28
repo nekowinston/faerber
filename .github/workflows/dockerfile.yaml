@@ -1,0 +1,23 @@
+name: Build Discord Bot
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "**.rs"
+      - "**.toml"
+      - ".github/workflows/**"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build Dockerfile
+        uses: VaultVulp/gp-docker-action@1.5.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          image-name: faerber-discord-bot
+          dockerfile: discord_bot/Dockerfile
+          pull-image: true
