@@ -19,7 +19,7 @@ features = ["blocking"]
 [dependencies.serenity]
 version = "0.11.5"
 default-features = false
-features = ["client", "gateway", "rustls_backend", "model"]
+features = ["client", "gateway", "native_tls_backend", "model"]
 
 [dependencies.tokio]
 version = "1.25.0"
