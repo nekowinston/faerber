@@ -16,15 +16,48 @@ struct Data {}
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
 
-const MAX_WIDTH: u32 = 3840;
-const MAX_HEIGHT: u32 = 2160;
+#[derive(Clone, Copy)]
+struct FlavorInfo {
+    name: &'static str,
+    emoji: &'static str,
+    id: &'static str,
+}
+impl From<FlavorInfo> for serenity::CreateButton {
+    fn from(info: FlavorInfo) -> Self {
+        create_button(info.name, info.emoji.parse().unwrap(), info.id)
+    }
+}
+impl From<FlavorInfo> for String {
+    fn from(info: FlavorInfo) -> Self {
+        info.emoji.to_string() + " " + info.name
+    }
+}
 
-const FLAVORS: phf::Map<&'static str, &'static str> = phf_map! {
-    "mocha" => "🌿 Mocha",
-    "macchiato" => "🌺 Macchiato",
-    "frappe" => "🪴 Frappé",
-    "latte" => "🌻 Latte",
+const FLAVORS: phf::Map<&'static str, FlavorInfo> = phf_map! {
+    "mocha" => FlavorInfo {
+        name: "Mocha",
+        emoji: "🌿",
+        id: "mocha",
+    },
+    "macchiato" => FlavorInfo {
+        name: "Macchiato",
+        emoji: "🌺",
+        id: "macchiato",
+    },
+    "frappe" => FlavorInfo {
+        name: "Frappé",
+        emoji: "🪴",
+        id: "frappe",
+    },
+    "latte" =>FlavorInfo {
+        name: "Latte",
+        emoji: "🌻",
+        id: "latte",
+    },
 };
+
+const MAX_WIDTH: u32 = 1920 * 2;
+const MAX_HEIGHT: u32 = 1080 * 2;
 
 struct ConversionResult {
     path: PathBuf,
@@ -46,7 +79,7 @@ async fn download_and_convert_image(url: &str, flavor: &str) -> Result<Conversio
         });
     }
 
-    let mut image = image::load_from_memory(&bytes).expect("Unable to open image");
+    let mut image = image::load_from_memory(&bytes)?;
     let mut imgsize = (image.width(), image.height());
     let mut downsized = false;
 
@@ -99,14 +132,12 @@ async fn ask_for_flavor(ctx: Context<'_>) -> Result<serenity::Message, serenity:
             .content("What flavor do you want?")
             .components(|c| {
                 c.create_action_row(|row| {
-                    row.add_button(create_button("Mocha", "🌿".parse().unwrap(), "mocha"));
-                    row.add_button(create_button(
-                        "Macchiato",
-                        "🌺".parse().unwrap(),
-                        "macchiato",
-                    ));
-                    row.add_button(create_button("Frappe", "🪴".parse().unwrap(), "frappe"));
-                    row.add_button(create_button("Latte", "🌻".parse().unwrap(), "latte"))
+                    // using a map here messed up the order of the buttons ¯\_(ツ)_/¯
+                    row.add_button(FLAVORS["mocha"].into());
+                    row.add_button(FLAVORS["macchiato"].into());
+                    row.add_button(FLAVORS["frappe"].into());
+                    row.add_button(FLAVORS["latte"].into());
+                    row
                 })
             })
     })
@@ -125,13 +156,17 @@ async fn faerber(
             .await?;
         return Ok(());
     } else {
-        ctx.defer().await?;
+        // all further messages are ephemeral
+        ctx.defer_ephemeral().await?;
     }
 
-    // check if the attachments start with "image/"
     let mut non_image_attachments = false;
     for attachment in message.attachments.iter() {
-        if attachment.width.is_none() {
+        if let Some(content_type) = &attachment.content_type {
+            if !content_type.starts_with("image/") {
+                non_image_attachments = true;
+            }
+        } else {
             non_image_attachments = true;
         }
     }
@@ -149,12 +184,11 @@ async fn faerber(
     let msg = ask_for_flavor(ctx).await?;
     let interaction = msg
         .await_component_interaction(ctx)
-        .author_id(ctx.author().id)
         .timeout(Duration::from_secs(30));
 
     if let Some(item) = interaction.await {
         let flavor = &item.data.custom_id;
-        let flavorname = FLAVORS[flavor];
+        let flavorname: String = FLAVORS[flavor].into();
 
         item.create_interaction_response(&ctx, |r| {
             r.kind(serenity::InteractionResponseType::DeferredUpdateMessage)
@@ -163,15 +197,17 @@ async fn faerber(
 
         let converted = download_and_convert_image(url, flavor).await?;
         let user = ctx.author().mention();
-        msg.delete(&ctx).await?;
         msg.channel_id
             .send_message(&ctx, |m| {
                 let mut text: String = format!("Here's your image in {flavorname} - requested by {user}");
+
                 // add note if the image was downsized
                 if converted.downsized {
                     text.push_str(&format!("\nImage sizes are limited to {MAX_WIDTH}x{MAX_HEIGHT}. Please use the CLI or web app for the full resolution."))
                 }
-                m.content(text).add_file(&converted.path)
+
+                m.content(text).add_file(&converted.path);
+                m
             })
             .await?;
 
