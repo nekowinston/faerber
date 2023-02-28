@@ -38,7 +38,7 @@
           faerber = pkgs.rustPlatform.buildRustPackage {
             name = "faerber";
             src = ./.;
-            cargoSha256 = "sha256-HNH2z22sJwJNevbejVDQq9DzG/aPoEJta9LenbKq/H4=";
+            cargoSha256 = "sha256-o57JqWVO9G32J3AP0HhgJfDpOWLtjJF17Wh6xUcB6TE=";
           };
           default = faerber;
         };
