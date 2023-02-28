@@ -17,4 +17,5 @@ faerber_lib/Cargo.lock
 .criterion/
 
 # nix
+.pre-commit-config.yaml
 /result

@@ -4,12 +4,15 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
+    pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
+    pre-commit-hooks.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = {
     self,
     nixpkgs,
     flake-utils,
+    pre-commit-hooks,
   }:
     flake-utils.lib.eachDefaultSystem
     (
@@ -22,6 +25,8 @@
           inherit (pkgs.stdenv.hostPlatform) isDarwin;
         in
           pkgs.mkShell {
+            inherit (self.checks.${system}.pre-commit-check) shellHook;
+
             buildInputs = with pkgs;
               [
                 cargo
@@ -34,6 +39,17 @@
               ]
               ++ lib.optionals isDarwin [darwin.apple_sdk.frameworks.Security];
           };
+
+        checks = {
+          pre-commit-check = pre-commit-hooks.lib.${system}.run {
+            src = ./.;
+            hooks = {
+              clippy.enable = true;
+              rustfmt.enable = true;
+            };
+          };
+        };
+
         packages = rec {
           faerber = pkgs.rustPlatform.buildRustPackage {
             name = "faerber";
