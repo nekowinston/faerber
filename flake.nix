@@ -4,6 +4,7 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
+    rust-overlay.url = "github:oxalica/rust-overlay";
     pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
     pre-commit-hooks.inputs.nixpkgs.follows = "nixpkgs";
   };
@@ -13,31 +14,41 @@
     nixpkgs,
     flake-utils,
     pre-commit-hooks,
+    rust-overlay,
   }:
     flake-utils.lib.eachDefaultSystem
     (
       system: let
+        overlays = [(import rust-overlay)];
         pkgs = import nixpkgs {
-          inherit system;
+          inherit system overlays;
         };
       in {
         devShells.default = let
           inherit (pkgs.stdenv.hostPlatform) isDarwin;
         in
           pkgs.mkShell {
-            inherit (self.checks.${system}.pre-commit-check) shellHook;
-
             buildInputs = with pkgs;
               [
-                cargo
-                clippy
+                (rust-bin.fromRustupToolchainFile ./rust-toolchain.toml)
                 libiconv
                 openssl
                 pkg-config
-                rustc
-                rustfmt
+                # WASM dependencies
+                binaryen
+                wasm-bindgen-cli
+                wasm-pack
               ]
-              ++ lib.optionals isDarwin [darwin.apple_sdk.frameworks.Security];
+              ++ lib.optionals isDarwin (with darwin.apple_sdk.frameworks; [
+                # GUI dependencies on darwin
+                AppKit
+                CoreServices
+                OpenGL
+                Security
+              ]);
+            shellHook = ''
+              ${self.checks.${system}.pre-commit-check.shellHook}
+            '';
           };
 
         checks = {

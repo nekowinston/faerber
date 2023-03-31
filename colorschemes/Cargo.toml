@@ -1,0 +1,9 @@
+[package]
+name = "colorschemes"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+lazy_static = "1.4.0"
+serde = { version = "1.0.144", features = ["serde_derive"] }
+serde_json = "1.0.85"

@@ -1,6 +1,6 @@
 // vim:fdm=marker
 use clap::{arg, command, value_parser, Arg, ArgAction, ValueEnum};
-use faerber::{get_labs, parse_colorscheme, ColorScheme, Palette, LIBRARY};
+use faerber::{get_labs, parse_colorscheme, ColorScheme, Palette};
 use faerber_lib::DEMethod;
 use faerber_lib::Lab;
 use image::RgbaImage;
