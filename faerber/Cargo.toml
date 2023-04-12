@@ -20,3 +20,4 @@ lazy_static = "1.4.0"
 faerber_lib = { path = "../faerber_lib" }
 image = "0.24.1"
 oxipng = "8.0.0"
+clap_complete = "4.2.0"

@@ -1,10 +1,11 @@
-// vim:fdm=marker
-use clap::{arg, command, value_parser, Arg, ArgAction, ValueEnum};
+use clap::{value_parser, Arg, ArgAction, Command, ValueEnum, ValueHint};
+use clap_complete::{generate, Generator, Shell};
 use faerber::{get_labs, parse_colorscheme, ColorScheme, Palette, LIBRARY};
 use faerber_lib::DEMethod;
 use faerber_lib::Lab;
 use image::RgbaImage;
 use std::fs::File;
+use std::io;
 use std::io::prelude::*;
 use std::io::{Cursor, Write};
 use std::path::Path;
@@ -31,17 +32,19 @@ impl From<CliDeltaMethods> for DEMethod {
     }
 }
 
-fn main() {
-    let matches = command!()
+fn build_cli() -> Command {
+    Command::new("faerber")
         .arg(
-            arg!([input] "Input file")
-                .required(true)
-                .value_parser(value_parser!(PathBuf)),
+            Arg::new("input")
+                .required_unless_present("completion")
+                .value_parser(value_parser!(PathBuf))
+                .value_hint(ValueHint::FilePath),
         )
         .arg(
-            arg!([output] "Output file")
-                .required(true)
-                .value_parser(value_parser!(String)),
+            Arg::new("output")
+                .required_unless_present("completion")
+                .value_parser(value_parser!(String))
+                .value_hint(ValueHint::FilePath),
         )
         .arg(
             Arg::new("method")
@@ -54,7 +57,7 @@ fn main() {
             Arg::new("palette")
                 .short('p')
                 .long("palette")
-                .value_parser(value_parser!(String))
+                .value_parser(["catppuccin", "dracula", "gruvbox", "nord", "solarized"])
                 .default_value("catppuccin"),
         )
         .arg(Arg::new("flavour").short('f').long("flavour").num_args(1..))
@@ -64,7 +67,27 @@ fn main() {
                 .long("verbose")
                 .action(ArgAction::Count),
         )
-        .get_matches();
+        .arg(
+            Arg::new("completion")
+                .long("completion")
+                .value_parser(value_parser!(Shell))
+                .value_hint(ValueHint::Other),
+        )
+}
+
+fn print_completions<G: Generator>(gen: G, cmd: &mut Command) {
+    generate(gen, cmd, cmd.get_name().to_string(), &mut io::stdout());
+}
+
+fn main() {
+    let matches = build_cli().get_matches();
+
+    if let Some(completion) = matches.get_one::<Shell>("completion").copied() {
+        let mut cmd = build_cli();
+        eprintln!("Generating completion file for {completion}...");
+        print_completions(completion, &mut cmd);
+        return;
+    }
 
     let input = matches.get_one::<PathBuf>("input").expect("required");
     let output = matches.get_one::<String>("output").expect("required");
