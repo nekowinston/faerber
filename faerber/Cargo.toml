@@ -13,7 +13,7 @@ name = "faerber"
 path = "src/main.rs"
 
 [dependencies]
-clap = { version = "4.0.23", features = ["cargo", "derive"] }
+clap = { version = "4.2.1", features = ["cargo", "derive", "string"] }
 serde = { version = "1.0.144", features = ["serde_derive"] }
 serde_json = "1.0.85"
 lazy_static = "1.4.0"
