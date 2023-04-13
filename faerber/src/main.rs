@@ -191,7 +191,7 @@ fn main() {
             }
         };
 
-        let result = faerber_lib::convert(img.clone(), method, &labs);
+        let result = faerber_lib::convert(&img, method, &labs);
         let mut c = Cursor::new(Vec::new());
         image::write_buffer_with_format(
             &mut c,

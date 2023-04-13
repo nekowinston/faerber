@@ -3,7 +3,6 @@ use criterion::{criterion_group, criterion_main, Criterion};
 use deltae::DEMethod;
 use faerber_lib::{convert, convert_color, rgba_pixels_to_labs};
 use image::RgbaImage;
-use rand;
 
 pub fn benchmark(c: &mut Criterion) {
     // benchmark image: Wanderer über dem Nebelmeer - by Casper David Friedrich
@@ -42,16 +41,16 @@ pub fn benchmark(c: &mut Criterion) {
     c.benchmark_group("image")
         .sample_size(10)
         .bench_function("de1976", |b| {
-            b.iter(|| convert(img.clone(), DEMethod::DE1976, &palette))
+            b.iter(|| convert(&img, DEMethod::DE1976, &palette))
         })
         .bench_function("de1994g", |b| {
-            b.iter(|| convert(img.clone(), DEMethod::DE1994G, &palette))
+            b.iter(|| convert(&img, DEMethod::DE1994G, &palette))
         })
         .bench_function("de1994t", |b| {
-            b.iter(|| convert(img.clone(), DEMethod::DE1994T, &palette))
+            b.iter(|| convert(&img, DEMethod::DE1994T, &palette))
         })
         .bench_function("de2000", |b| {
-            b.iter(|| convert(img.clone(), DEMethod::DE2000, &palette))
+            b.iter(|| convert(&img, DEMethod::DE2000, &palette))
         });
 
     c.benchmark_group("other")
