@@ -1,3 +1,15 @@
+#![warn(
+    // clippy::cargo,
+    clippy::complexity,
+    clippy::nursery,
+    clippy::pedantic,
+    clippy::perf,
+    clippy::style,
+    // clippy::unwrap_used,
+    // clippy::expect_used,
+)]
+#![allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
+
 pub mod custom_lab;
 
 pub use crate::custom_lab::Lab;
@@ -16,6 +28,7 @@ use std::borrow::Cow;
 use std::io::Cursor;
 
 // used for the WASM library to convert the HEX colors to CIELAB
+#[must_use]
 pub fn convert_palette_to_lab(palette: &[u32]) -> Vec<Lab> {
     palette
         .iter()
@@ -40,6 +53,10 @@ pub fn parse_delta_e_method(method: String) -> DEMethod {
     };
 }
 
+/// # Panics
+///
+/// Panics if the SVG is invalid.
+#[must_use]
 pub fn convert_vector(source: &str, convert_method: DEMethod, labs: &Vec<Lab>) -> String {
     let mut reader = Reader::from_str(source);
     reader.trim_text(true);
@@ -48,16 +65,15 @@ pub fn convert_vector(source: &str, convert_method: DEMethod, labs: &Vec<Lab>) -
     loop {
         let event = reader.read_event();
         match &event {
-            Ok(Event::Start(e)) | Ok(Event::Empty(e)) => {
+            Ok(Event::Start(e) | Event::Empty(e)) => {
                 let mut elem = e.to_owned();
                 let mod_attr = e.attributes().map(|attr| {
                     let attr = attr.unwrap();
                     match attr.key {
-                        QName(b"fill")
-                        | QName(b"stroke")
-                        | QName(b"stop-color")
-                        | QName(b"flood-color")
-                        | QName(b"lighting-color") => {
+                        QName(
+                            b"fill" | b"stroke" | b"stop-color" | b"flood-color"
+                            | b"lighting-color",
+                        ) => {
                             if attr.value.starts_with(b"url(") || attr.value == b"none".as_slice() {
                                 return attr;
                             }
@@ -95,9 +111,9 @@ pub fn convert_vector(source: &str, convert_method: DEMethod, labs: &Vec<Lab>) -
                                 let decoded = base64.decode(data).unwrap();
                                 let image: RgbaImage =
                                     image::load_from_memory(&decoded).unwrap().to_rgba8();
-                                let converted = convert(image.clone(), convert_method, labs);
+                                let converted = convert(&image, convert_method, labs);
                                 let mut buffer = Cursor::new(Vec::new());
-                                let _ = image::write_buffer_with_format(
+                                _ = image::write_buffer_with_format(
                                     &mut buffer,
                                     &converted,
                                     image.width(),
@@ -143,32 +159,35 @@ pub fn convert_vector(source: &str, convert_method: DEMethod, labs: &Vec<Lab>) -
     String::from_utf8(result).unwrap()
 }
 
-pub fn convert(img: RgbaImage, convert_method: DEMethod, labs: &Vec<Lab>) -> Vec<u8> {
+#[must_use]
+pub fn convert(img: &RgbaImage, convert_method: DEMethod, labs: &Vec<Lab>) -> Vec<u8> {
     // convert the RGBA pixels in the image to LAB values
     let img_labs = rgba_pixels_to_labs(img.pixels());
 
     // loop over each LAB in the LAB-converted image:
     // benchmarks have shown that only DeltaE 2000 benefits from parallel processing with rayon
-    return if convert_method != DEMethod::DE2000 {
+    return if convert_method == DEMethod::DE2000 {
         img_labs
-            .iter()
+            .par_iter()
             .flat_map(|lab| convert_color(convert_method, labs, lab))
             .collect()
     } else {
         img_labs
-            .par_iter()
+            .iter()
             .flat_map(|lab| convert_color(convert_method, labs, lab))
             .collect()
     };
 }
 
+#[must_use]
 pub fn rgba_pixels_to_labs(img_pixels: Pixels<Rgba<u8>>) -> Vec<Lab> {
     img_pixels.map(|pixel| Lab::from_rgba(&pixel.0)).collect()
 }
 
+#[must_use]
 pub fn convert_color(convert_method: DEMethod, palette: &Vec<Lab>, lab: &Lab) -> [u8; 4] {
     // keep track of the closest color
-    let mut closest_color: Lab = Default::default();
+    let mut closest_color: Lab = custom_lab::Lab::default();
     // keep track of the closest distance measured, initially set as high as possible
     let mut closest_distance: f32 = f32::MAX;
 
@@ -179,7 +198,7 @@ pub fn convert_color(convert_method: DEMethod, palette: &Vec<Lab>, lab: &Lab) ->
         if delta.value() < &closest_distance {
             closest_color = *color;
             closest_color.alpha = lab.alpha;
-            closest_distance = *delta.value()
+            closest_distance = *delta.value();
         }
     }
 

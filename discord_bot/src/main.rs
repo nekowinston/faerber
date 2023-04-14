@@ -1,3 +1,14 @@
+#![warn(
+    // clippy::cargo,
+    clippy::complexity,
+    clippy::nursery,
+    clippy::pedantic,
+    clippy::perf,
+    clippy::style,
+    // clippy::unwrap_used,
+    // clippy::expect_used,
+)]
+
 use std::{
     io::{Cursor, Write},
     path::PathBuf,
@@ -24,7 +35,11 @@ struct FlavorInfo {
 }
 impl From<FlavorInfo> for serenity::CreateButton {
     fn from(info: FlavorInfo) -> Self {
-        create_button(info.name, info.emoji.parse().unwrap(), info.id)
+        create_button(
+            info.name,
+            info.emoji.parse().expect("Failed to parse emoji"),
+            info.id,
+        )
     }
 }
 impl From<FlavorInfo> for String {
@@ -81,13 +96,14 @@ async fn download_and_convert_image(url: &str, flavor: &str) -> Result<Conversio
 
     let mut image = image::load_from_memory(&bytes)?;
     let mut imgsize = (image.width(), image.height());
-    let mut downsized = false;
 
-    if imgsize.0 > MAX_WIDTH || imgsize.1 > MAX_HEIGHT {
+    let downsized = if imgsize.0 > MAX_WIDTH || imgsize.1 > MAX_HEIGHT {
         image = image.resize_to_fill(MAX_WIDTH, MAX_HEIGHT, image::imageops::FilterType::Lanczos3);
         imgsize = (image.width(), image.height());
-        downsized = true;
-    }
+        true
+    } else {
+        false
+    };
 
     let flavor = LIBRARY
         .get("catppuccin")
@@ -97,7 +113,7 @@ async fn download_and_convert_image(url: &str, flavor: &str) -> Result<Conversio
 
     let labs = get_labs(flavor.clone());
 
-    let result = convert(image.to_rgba8(), faerber_lib::DEMethod::DE2000, &labs);
+    let result = convert(&image.to_rgba8(), faerber_lib::DEMethod::DE2000, &labs);
     let mut c = Cursor::new(Vec::new());
     image::write_buffer_with_format(
         &mut c,
@@ -155,13 +171,12 @@ async fn faerber(
         ctx.send(|m| m.ephemeral(true).content("No attachments found"))
             .await?;
         return Ok(());
-    } else {
-        // all further messages are ephemeral
-        ctx.defer_ephemeral().await?;
     }
+    // all further messages are ephemeral
+    ctx.defer_ephemeral().await?;
 
     let mut non_image_attachments = false;
-    for attachment in message.attachments.iter() {
+    for attachment in &message.attachments {
         if let Some(content_type) = &attachment.content_type {
             if !content_type.starts_with("image/") {
                 non_image_attachments = true;
@@ -203,7 +218,7 @@ async fn faerber(
 
                 // add note if the image was downsized
                 if converted.downsized {
-                    text.push_str(&format!("\nImage sizes are limited to {MAX_WIDTH}x{MAX_HEIGHT}. Please use the CLI or web app for the full resolution."))
+                    text.push_str(&format!("\nImage sizes are limited to {MAX_WIDTH}x{MAX_HEIGHT}. Please use the CLI or web app for the full resolution."));
                 }
 
                 m.content(text).add_file(&converted.path);
