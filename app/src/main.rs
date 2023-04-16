@@ -47,6 +47,7 @@ impl Default for MyApp {
 
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        catppuccin_egui::set_theme(ctx, catppuccin_egui::MOCHA);
         egui::CentralPanel::default().show(ctx, |ui| {
             if ui.button("Open").clicked() {
                 self.opened_file = FileDialog::new()
