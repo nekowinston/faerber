@@ -19,7 +19,7 @@ sublime_fuzzy = "0.7.0"
 
 [dependencies.eframe]
 version = "0.21.3"
-features = ["__screenshot"]
+features = ["__screenshot", "dark-light"]
 
 [dependencies.egui_extras]
 version = "0.21.0"

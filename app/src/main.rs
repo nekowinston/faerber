@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
+use catppuccin_egui::{set_theme, LATTE, MOCHA};
 use colorschemes::LibraryManager;
 use eframe::egui;
 use egui::{Sense, Stroke, Vec2};
@@ -46,8 +47,12 @@ impl Default for MyApp {
 }
 
 impl eframe::App for MyApp {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        catppuccin_egui::set_theme(ctx, catppuccin_egui::MOCHA);
+    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+        match frame.info().system_theme {
+            Some(eframe::Theme::Dark) => set_theme(ctx, MOCHA),
+            Some(eframe::Theme::Light) => set_theme(ctx, LATTE),
+            None => set_theme(ctx, LATTE),
+        }
         egui::CentralPanel::default().show(ctx, |ui| {
             if ui.button("Open").clicked() {
                 self.opened_file = FileDialog::new()
