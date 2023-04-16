@@ -1,9 +1,9 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use lazy_static::lazy_static;
 
-type WezTermColorscheme = HashMap<String, Vec<String>>;
-type SavedColorscheme = HashMap<String, HashMap<String, String>>;
+type WezTermColorscheme = BTreeMap<String, Vec<String>>;
+type SavedColorscheme = BTreeMap<String, BTreeMap<String, String>>;
 
 #[derive(Clone, Default, Debug)]
 pub struct Color {
@@ -20,7 +20,7 @@ impl Color {
         }
     }
 }
-pub type Palette = HashMap<String, Color>;
+pub type Palette = BTreeMap<String, Color>;
 #[derive(Clone, Default, Debug)]
 pub struct Flavor {
     pub name: String,
@@ -37,8 +37,8 @@ impl Flavor {
     }
 }
 
-pub type ColorScheme = HashMap<String, Flavor>;
-pub type Library = HashMap<String, ColorScheme>;
+pub type ColorScheme = BTreeMap<String, Flavor>;
+pub type Library = BTreeMap<String, ColorScheme>;
 
 #[derive(Debug)]
 pub struct LibraryManager {
@@ -161,7 +161,12 @@ mod tests {
     #[test]
     fn get_colorscheme() {
         let library = LibraryManager::new();
-        let cs = library.library.keys();
+        let cs = library
+            .library
+            .get("wezterm")
+            .unwrap()
+            .get("Catppuccin Mocha")
+            .unwrap();
         println!("{:?}", cs);
     }
 }

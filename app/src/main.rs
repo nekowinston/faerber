@@ -2,9 +2,11 @@
 
 use colorschemes::LibraryManager;
 use eframe::egui;
+use egui::{Sense, Stroke, Vec2};
 use egui_extras::RetainedImage;
 use rfd::FileDialog;
 use std::{fs, path::PathBuf};
+use sublime_fuzzy::best_match;
 
 fn main() -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions {
@@ -27,6 +29,7 @@ struct MyApp {
     library: LibraryManager,
     color_scheme: String,
     flavor: String,
+    flavor_filter: String,
 }
 
 impl Default for MyApp {
@@ -35,8 +38,9 @@ impl Default for MyApp {
             image: None,
             opened_file: None,
             library: LibraryManager::new(),
-            color_scheme: "Atelier Estuary (base16)".to_string(),
-            flavor: "Atelier Estuary (base16)".to_string(),
+            color_scheme: "wezterm".to_string(),
+            flavor: "Catppuccin Mocha".to_string(),
+            flavor_filter: "".to_string(),
         }
     }
 }
@@ -62,7 +66,7 @@ impl eframe::App for MyApp {
 
             ui.separator();
             ui.label("Color scheme");
-            ui.horizontal(|ui| {
+            ui.horizontal_wrapped(|ui| {
                 self.library.library.keys().for_each(|color_scheme| {
                     ui.selectable_value(
                         &mut self.color_scheme,
@@ -75,13 +79,70 @@ impl eframe::App for MyApp {
             ui.separator();
             ui.label("Flavor");
             ui.horizontal(|ui| {
-                println!("{:?}", self.library.library);
-                self.library.library[&self.color_scheme]
+                ui.add(egui::TextEdit::singleline(&mut self.flavor_filter));
+                if ui.button("X").clicked() {
+                    self.flavor_filter = "".to_string();
+                }
+            });
+            ui.horizontal(|ui| {
+                self.library
+                    .library
+                    .get(&self.color_scheme)
+                    .unwrap()
                     .keys()
+                    .filter_map(|f| {
+                        if self.flavor_filter.is_empty() {
+                            return Some(f);
+                        } else {
+                            best_match(&self.flavor_filter, f).map(|_| f)
+                        }
+                    })
                     .for_each(|flavor| {
                         ui.selectable_value(&mut self.flavor, flavor.to_string(), flavor);
                     });
                 if ui.button("+").clicked() {}
+            });
+            ui.label("Colors");
+            ui.horizontal(|ui| {
+                self.library
+                    .library
+                    .get(&self.color_scheme)
+                    .unwrap()
+                    .get(&self.flavor)
+                    .unwrap()
+                    .palette
+                    .iter()
+                    .for_each(|color| {
+                        let r = 10.0;
+                        let size = Vec2::splat(2.0 * r + 5.0);
+                        let (rect, sense) = ui
+                            .allocate_at_least(size, Sense::union(Sense::hover(), Sense::click()));
+                        sense
+                            .clone()
+                            .on_hover_cursor(egui::CursorIcon::PointingHand)
+                            .on_hover_text(color.0.to_string());
+
+                        let cv = color.1.value;
+                        let c = match color.1.enabled {
+                            true => egui::Color32::from_rgb(
+                                (cv >> 16 & 0xFF) as u8,
+                                (cv >> 8 & 0xFF) as u8,
+                                (cv & 0xFF) as u8,
+                            ),
+                            false => egui::Color32::BLACK,
+                        };
+
+                        if sense.clicked() {
+                            todo!("toggle the color")
+                            // self.library
+                            //     .set_color(&self.color_scheme, &self.flavor, color.0, 0);
+                        }
+
+                        // ui.painter().circle_filled(rect.center(), r, c);
+                        ui.painter().rect_filled(rect, 0.0, c);
+                        ui.painter()
+                            .rect_stroke(rect, 0.0, Stroke::new(1.0, egui::Color32::BLACK));
+                    });
             });
         });
     }

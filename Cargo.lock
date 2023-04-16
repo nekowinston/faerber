@@ -1394,6 +1394,7 @@ name = "faerber-app"
 version = "0.1.0"
 dependencies = [
  "colorschemes",
+ "css-color",
  "eframe",
  "egui",
  "egui_extras",
@@ -1404,6 +1405,7 @@ dependencies = [
  "rfd",
  "serde",
  "serde_json",
+ "sublime_fuzzy",
 ]
 
 [[package]]
@@ -3662,6 +3664,12 @@ name = "strsim"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
+
+[[package]]
+name = "sublime_fuzzy"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fa7986063f7c0ab374407e586d7048a3d5aac94f103f751088bf398e07cd5400"
 
 [[package]]
 name = "svgtypes"
