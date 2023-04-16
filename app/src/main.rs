@@ -1,10 +1,10 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
+use colorschemes::LibraryManager;
 use eframe::egui;
 use egui_extras::RetainedImage;
 use rfd::FileDialog;
-use serde_json::Value;
-use std::{collections::HashMap, fs, path::PathBuf};
+use std::{fs, path::PathBuf};
 
 fn main() -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions {
@@ -35,8 +35,8 @@ impl Default for MyApp {
             image: None,
             opened_file: None,
             library: LibraryManager::new(),
-            color_scheme: "catppuccin".to_string(),
-            flavor: "mocha".to_string(),
+            color_scheme: "Atelier Estuary (base16)".to_string(),
+            flavor: "Atelier Estuary (base16)".to_string(),
         }
     }
 }
@@ -75,6 +75,7 @@ impl eframe::App for MyApp {
             ui.separator();
             ui.label("Flavor");
             ui.horizontal(|ui| {
+                println!("{:?}", self.library.library);
                 self.library.library[&self.color_scheme]
                     .keys()
                     .for_each(|flavor| {

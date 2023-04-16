@@ -12,7 +12,7 @@
 use clap::ArgGroup;
 use clap::{value_parser, Arg, ArgAction, Command, ValueEnum, ValueHint};
 use clap_complete::{generate, Generator, Shell};
-use faerber::{get_labs, parse_colorscheme, ColorScheme, Palette, LIBRARY};
+use faerber::{get_labs, parse_colorscheme, ColorScheme, Library, Palette};
 use faerber_lib::DEMethod;
 use faerber_lib::Lab;
 use image::RgbaImage;
@@ -44,8 +44,9 @@ impl From<CliDeltaMethods> for DEMethod {
 }
 
 fn build_cli() -> Command {
-    let palettes = LIBRARY.keys().map(|s| s.to_lowercase()).collect::<Vec<_>>();
-    let flavours = LIBRARY
+    let lib = Library::new();
+    let palettes = lib.keys().map(|s| s.to_lowercase()).collect::<Vec<_>>();
+    let flavours = lib
         .iter()
         .flat_map(|(_k, v)| v.keys().map(|s| s.to_lowercase()).collect::<Vec<_>>())
         .collect::<Vec<_>>();
@@ -107,6 +108,7 @@ fn slugify(s: &str) -> String {
 }
 
 fn main() {
+    let lib = Library::new();
     let matches = build_cli().get_matches();
 
     if let Some(completion) = matches.subcommand_matches("completion") {
@@ -130,7 +132,7 @@ fn main() {
     let file_ext = file_path.extension().unwrap().to_str().unwrap();
 
     let mut custom_colorscheme: ColorScheme = ColorScheme::new();
-    let colorscheme = LIBRARY.get(palette).unwrap_or_else(|| {
+    let colorscheme = lib.get(palette).unwrap_or_else(|| {
         let contents = read_to_string(palette).expect("something went wrong reading the file");
 
         custom_colorscheme = parse_colorscheme(serde_json::from_str(&contents).unwrap());

@@ -7,9 +7,9 @@ type SavedColorscheme = HashMap<String, HashMap<String, String>>;
 
 #[derive(Clone, Default, Debug)]
 pub struct Color {
-    name: String,
-    value: u32,
-    enabled: bool,
+    pub name: String,
+    pub value: u32,
+    pub enabled: bool,
 }
 impl Color {
     pub fn new(name: String, value: u32) -> Self {
@@ -23,9 +23,9 @@ impl Color {
 pub type Palette = HashMap<String, Color>;
 #[derive(Clone, Default, Debug)]
 pub struct Flavor {
-    name: String,
-    palette: Palette,
-    enabled: bool,
+    pub name: String,
+    pub palette: Palette,
+    pub enabled: bool,
 }
 impl Flavor {
     pub fn new(name: String, palette: Palette) -> Self {
@@ -49,12 +49,16 @@ impl LibraryManager {
     pub fn new() -> Self {
         Self::default()
     }
-    fn add_colorscheme(&mut self, name: String, cs: String) -> Result<ColorScheme, &'static str> {
+    pub fn add_colorscheme(
+        &mut self,
+        name: String,
+        cs: String,
+    ) -> Result<ColorScheme, &'static str> {
         let colorscheme = Self::parse_colorscheme(name.clone(), cs)?;
         self.library.insert(name, colorscheme.clone());
         Ok(colorscheme)
     }
-    fn parse_colorscheme(name: String, cs: String) -> Result<ColorScheme, &'static str> {
+    pub fn parse_colorscheme(name: String, cs: String) -> Result<ColorScheme, &'static str> {
         if let Ok(saved_cs) = serde_json::from_str::<SavedColorscheme>(&cs) {
             let mut colorscheme = ColorScheme::new();
 
@@ -63,7 +67,7 @@ impl LibraryManager {
 
                 flavor.into_iter().for_each(|(name, value)| {
                     let value = value.trim_start_matches('#');
-                    let color = Color::new(name, u32::from_str_radix(&value, 16).unwrap());
+                    let color = Color::new(name, u32::from_str_radix(value, 16).unwrap());
                     flavor_palette.insert(color.name.clone(), color);
                 });
 
@@ -92,7 +96,9 @@ lazy_static! {
 
 impl Default for LibraryManager {
     fn default() -> Self {
-        DEFAULT_LIBRARY_MANAGER
+        LibraryManager {
+            library: DEFAULT_LIBRARY.clone(),
+        }
     }
 }
 
@@ -107,13 +113,11 @@ fn parse_wezterm_colorscheme(content: &str) -> Result<Library, &'static str> {
 
             palette.into_iter().enumerate().for_each(|(i, color)| {
                 let color = color.trim_start_matches('#');
-                let color = Color::new(
-                    format!("color{i}"),
-                    u32::from_str_radix(&color, 16).unwrap(),
-                );
+                let color =
+                    Color::new(format!("color{i}"), u32::from_str_radix(color, 16).unwrap());
                 result.insert(color.name.clone(), color);
             });
-            wezterm.insert(name.clone(), Flavor::new(name, result.clone()));
+            wezterm.insert(name.clone(), Flavor::new(name, result));
         });
 
         library.insert("wezterm".to_string(), wezterm);
@@ -152,5 +156,12 @@ mod tests {
             println!("{}: {}", name, flavor.len());
         });
         println!("{count} colorschemes parsed");
+    }
+
+    #[test]
+    fn get_colorscheme() {
+        let library = LibraryManager::new();
+        let cs = library.library.keys();
+        println!("{:?}", cs);
     }
 }

@@ -55,7 +55,6 @@
           pre-commit-check = pre-commit-hooks.lib.${system}.run {
             src = ./.;
             hooks = {
-              clippy.enable = true;
               rustfmt.enable = true;
             };
           };

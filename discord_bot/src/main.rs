@@ -15,7 +15,7 @@ use std::{
     time::Duration,
 };
 
-use faerber::{get_labs, LIBRARY};
+use faerber::{get_labs, Library};
 use faerber_lib::convert;
 use phf::phf_map;
 use poise::serenity_prelude::{self as serenity, Mentionable, ReactionType};
@@ -105,7 +105,8 @@ async fn download_and_convert_image(url: &str, flavor: &str) -> Result<Conversio
         false
     };
 
-    let flavor = LIBRARY
+    let library = Library::new();
+    let flavor = library
         .get("catppuccin")
         .expect("Could not find catppuccin in library")
         .get(flavor)

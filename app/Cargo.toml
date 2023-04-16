@@ -4,12 +4,15 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+colorschemes = { path = "../colorschemes" }
 egui = "0.21.0"
 image = "0.24.5"
 egui_file = "0.8.0"
 rfd = "0.11.1"
 faerber = { path = "../faerber" }
 faerber_lib = { path = "../faerber_lib" }
+serde = { version = "1.0.160", features = ["derive"] }
+serde_json = "1.0"
 
 [dependencies.eframe]
 version = "0.21.3"
