@@ -12,8 +12,9 @@
 use clap::ArgGroup;
 use clap::{value_parser, Arg, ArgAction, Command, ValueEnum, ValueHint};
 use clap_complete::{generate, Generator, Shell};
-use faerber::{get_labs, parse_colorscheme, ColorScheme, Library, Palette};
-use faerber_lib::DEMethod;
+use colorschemes::LibraryManager;
+use faerber::get_labs;
+use faerber_lib::ConversionMethod;
 use faerber_lib::Lab;
 use image::RgbaImage;
 use std::fs::{read_to_string, File};
@@ -30,23 +31,30 @@ enum CliDeltaMethods {
     De94t,
     De94g,
     De2000,
+    DitherFloydSteinberg,
 }
 
-impl From<CliDeltaMethods> for DEMethod {
+impl From<CliDeltaMethods> for ConversionMethod {
     fn from(val: CliDeltaMethods) -> Self {
         match val {
-            CliDeltaMethods::De76 => Self::DE1976,
-            CliDeltaMethods::De94t => Self::DE1994T,
-            CliDeltaMethods::De94g => Self::DE1994G,
-            CliDeltaMethods::De2000 => Self::DE2000,
+            CliDeltaMethods::De76 => Self::De1976,
+            CliDeltaMethods::De94t => Self::De1994T,
+            CliDeltaMethods::De94g => Self::De1994G,
+            CliDeltaMethods::De2000 => Self::De2000,
+            CliDeltaMethods::DitherFloydSteinberg => Self::DitherFloydSteinberg,
         }
     }
 }
 
 fn build_cli() -> Command {
-    let lib = Library::new();
-    let palettes = lib.keys().map(|s| s.to_lowercase()).collect::<Vec<_>>();
-    let flavours = lib
+    let libman = LibraryManager::new();
+    let palettes = libman
+        .library
+        .keys()
+        .map(|s| s.to_lowercase())
+        .collect::<Vec<_>>();
+    let flavours = libman
+        .library
         .iter()
         .flat_map(|(_k, v)| v.keys().map(|s| s.to_lowercase()).collect::<Vec<_>>())
         .collect::<Vec<_>>();
@@ -68,7 +76,7 @@ fn build_cli() -> Command {
                 .short('p')
                 .long("palette")
                 .value_parser(palettes)
-                .default_value("catppuccin"),
+                .default_value("wezterm"),
             Arg::new("flavour")
                 .short('f')
                 .long("flavour")
@@ -108,7 +116,7 @@ fn slugify(s: &str) -> String {
 }
 
 fn main() {
-    let lib = Library::new();
+    let libman = LibraryManager::new();
     let matches = build_cli().get_matches();
 
     if let Some(completion) = matches.subcommand_matches("completion") {
@@ -120,7 +128,7 @@ fn main() {
     }
 
     let input = matches.get_one::<PathBuf>("input").expect("required");
-    let method: DEMethod = (*matches
+    let method: ConversionMethod = (*matches
         .get_one::<CliDeltaMethods>("method")
         .expect("default"))
     .into();
@@ -131,13 +139,14 @@ fn main() {
     println!("Reading image from {}", file_path.display());
     let file_ext = file_path.extension().unwrap().to_str().unwrap();
 
-    let mut custom_colorscheme: ColorScheme = ColorScheme::new();
-    let colorscheme = lib.get(palette).unwrap_or_else(|| {
-        let contents = read_to_string(palette).expect("something went wrong reading the file");
-
-        custom_colorscheme = parse_colorscheme(serde_json::from_str(&contents).unwrap());
-        &custom_colorscheme
-    });
+    // let mut custom_colorscheme: ColorScheme = ColorScheme::new();
+    let colorscheme = libman.library.get(palette).unwrap();
+    //     .unwrap_or_else(|| {
+    //     let contents = read_to_string(palette).expect("something went wrong reading the file");
+    //
+    //     custom_colorscheme = libman.add_colorscheme("custom", &contents).unwrap();
+    //     &custom_colorscheme
+    // });
 
     let output = matches.get_one::<String>("output").map_or_else(
         || {
@@ -151,17 +160,27 @@ fn main() {
 
     let labs: Vec<Lab> = flavour.map_or_else(
         || {
-            let palette: Palette = colorscheme
+            let palette = colorscheme
                 .values()
                 .next()
                 .expect("palette should have a flavour")
-                .clone();
+                .palette
+                .values()
+                .map(|v| v.value)
+                .collect();
             get_labs(palette)
         },
         |flavour| {
             let mut labs: Vec<Lab> = vec![];
             if colorscheme.contains_key(flavour) {
-                labs.append(&mut get_labs(colorscheme.get(flavour).unwrap().clone()));
+                let colors = colorscheme
+                    .get(flavour)
+                    .unwrap()
+                    .palette
+                    .values()
+                    .map(|v| v.value)
+                    .collect();
+                labs.append(&mut get_labs(colors));
             } else {
                 eprintln!("Could not find flavour: {flavour}");
                 eprintln!(
@@ -180,7 +199,7 @@ fn main() {
 
     if file_ext == "svg" {
         let contents = read_to_string(input).unwrap();
-        let result = faerber_lib::convert_vector(&contents, method, &labs);
+        let result = faerber_lib::convert_vector(&contents, faerber_lib::DEMethod::DE2000, &labs);
         println!("{result}");
         let mut fp = File::create(output).unwrap();
         fp.write_all(result.as_bytes()).unwrap();
@@ -193,7 +212,8 @@ fn main() {
             }
         };
 
-        let result = faerber_lib::convert(&img, method, &labs);
+        let result = faerber_lib::convert(&img, ConversionMethod::DitherFloydSteinberg, &labs);
+        // let result = faerber_lib::convert(&img, method, &labs);
         let mut c = Cursor::new(Vec::new());
         image::write_buffer_with_format(
             &mut c,

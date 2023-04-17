@@ -15,7 +15,8 @@ use std::{
     time::Duration,
 };
 
-use faerber::{get_labs, Library};
+use colorschemes::LibraryManager;
+use faerber::get_labs;
 use faerber_lib::convert;
 use phf::phf_map;
 use poise::serenity_prelude::{self as serenity, Mentionable, ReactionType};

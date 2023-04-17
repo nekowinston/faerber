@@ -17,6 +17,8 @@ use base64::{engine::general_purpose::STANDARD as base64, Engine as _};
 use css_color::Srgb;
 pub use deltae::DEMethod;
 use deltae::DeltaE;
+use dither::ditherer::FLOYD_STEINBERG;
+use dither::prelude::*;
 use image::buffer::Pixels;
 use image::{Rgba, RgbaImage};
 use quick_xml::events::Event;
@@ -26,6 +28,66 @@ use quick_xml::{events::attributes::Attribute, name::QName};
 use rayon::prelude::*;
 use std::borrow::Cow;
 use std::io::Cursor;
+
+#[derive(Clone, Copy, Eq, PartialEq, PartialOrd)]
+pub enum ConversionMethod {
+    De1976,
+    De1994T,
+    De1994G,
+    De2000,
+    DitherFloydSteinberg,
+    DitherAtkinson,
+    DitherStucki,
+    DitherBurkes,
+    DitherJarvisJudiceNinke,
+    DitherSierra3,
+}
+
+impl From<ConversionMethod> for DEMethod {
+    fn from(val: ConversionMethod) -> Self {
+        match val {
+            ConversionMethod::De1976 => Self::DE1976,
+            ConversionMethod::De1994T => Self::DE1994T,
+            ConversionMethod::De1994G => Self::DE1994G,
+            ConversionMethod::De2000 => Self::DE2000,
+            _ => Self::DE2000,
+        }
+    }
+}
+
+impl From<ConversionMethod> for ditherer::Ditherer<'static> {
+    fn from(value: ConversionMethod) -> Self {
+        match value {
+            ConversionMethod::DitherFloydSteinberg => ditherer::FLOYD_STEINBERG,
+            ConversionMethod::DitherAtkinson => ditherer::ATKINSON,
+            ConversionMethod::DitherStucki => ditherer::STUCKI,
+            ConversionMethod::DitherBurkes => ditherer::BURKES,
+            ConversionMethod::DitherJarvisJudiceNinke => ditherer::JARVIS_JUDICE_NINKE,
+            ConversionMethod::DitherSierra3 => ditherer::SIERRA_3,
+            _ => ditherer::SIERRA_3,
+        }
+    }
+}
+
+impl std::str::FromStr for ConversionMethod {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        Ok(match s.to_ascii_lowercase().as_ref() {
+            "de1976" => Self::De1976,
+            "de1994t" => Self::De1994T,
+            "de1994g" => Self::De1994G,
+            "de2000" => Self::De2000,
+            "dither_floydsteinberg" => Self::DitherFloydSteinberg,
+            "dither_atkinson" => Self::DitherAtkinson,
+            "dither_stucki" => Self::DitherStucki,
+            "dither_burkes" => Self::DitherBurkes,
+            "dither_jarvisjudiceninke" => Self::DitherJarvisJudiceNinke,
+            "dither_sierra3" => Self::DitherSierra3,
+            _ => return Err("Invalid conversion method"),
+        })
+    }
+}
 
 // used for the WASM library to convert the HEX colors to CIELAB
 #[must_use]
@@ -43,14 +105,8 @@ pub fn convert_palette_to_lab(palette: &[u32]) -> Vec<Lab> {
 
 // used for the WASM library to convert a String to a DeltaE method
 #[cfg(target_family = "wasm")]
-pub fn parse_delta_e_method(method: String) -> DEMethod {
-    return match method.as_str() {
-        "76" => deltae::DE1976,
-        "94t" => deltae::DE1994T,
-        "94g" => deltae::DE1994G,
-        "2000" => deltae::DE2000,
-        _ => deltae::DE1976,
-    };
+pub fn parse_delta_e_method(method: String) -> ConversionMethod {
+    return method.parse().unwrap();
 }
 
 /// # Panics
@@ -111,7 +167,7 @@ pub fn convert_vector(source: &str, convert_method: DEMethod, labs: &Vec<Lab>) -
                                 let decoded = base64.decode(data).unwrap();
                                 let image: RgbaImage =
                                     image::load_from_memory(&decoded).unwrap().to_rgba8();
-                                let converted = convert(&image, convert_method, labs);
+                                let converted = convert(&image, ConversionMethod::De2000, labs);
                                 let mut buffer = Cursor::new(Vec::new());
                                 _ = image::write_buffer_with_format(
                                     &mut buffer,
@@ -160,22 +216,36 @@ pub fn convert_vector(source: &str, convert_method: DEMethod, labs: &Vec<Lab>) -
 }
 
 #[must_use]
-pub fn convert(img: &RgbaImage, convert_method: DEMethod, labs: &Vec<Lab>) -> Vec<u8> {
+pub fn convert(img: &RgbaImage, convert_method: ConversionMethod, labs: &Vec<Lab>) -> Vec<u8> {
     // convert the RGBA pixels in the image to LAB values
     let img_labs = rgba_pixels_to_labs(img.pixels());
 
     // loop over each LAB in the LAB-converted image:
     // benchmarks have shown that only DeltaE 2000 benefits from parallel processing with rayon
-    return if convert_method == DEMethod::DE2000 {
-        img_labs
+    return match convert_method {
+        ConversionMethod::De1976 | ConversionMethod::De1994T | ConversionMethod::De1994G => {
+            img_labs
+                .iter()
+                .flat_map(|lab| convert_color(convert_method.into(), labs, lab))
+                .collect()
+        }
+        ConversionMethod::De2000 => img_labs
             .par_iter()
-            .flat_map(|lab| convert_color(convert_method, labs, lab))
-            .collect()
-    } else {
-        img_labs
-            .iter()
-            .flat_map(|lab| convert_color(convert_method, labs, lab))
-            .collect()
+            .flat_map(|lab| convert_color(convert_method.into(), labs, lab))
+            .collect(),
+        ConversionMethod::DitherFloydSteinberg => {
+            let buf = Img::from_raw_buf(img.to_vec(), img.width()).convert_with(f64::from);
+            let quantize = dither::create_quantize_n_bits_func(3).expect("stuff");
+            FLOYD_STEINBERG
+                .dither(buf, quantize)
+                .convert_with(clamp_f64_to_u8)
+                .into_vec()
+        }
+        ConversionMethod::DitherAtkinson => todo!(),
+        ConversionMethod::DitherStucki => todo!(),
+        ConversionMethod::DitherBurkes => todo!(),
+        ConversionMethod::DitherJarvisJudiceNinke => todo!(),
+        ConversionMethod::DitherSierra3 => todo!(),
     };
 }
 
