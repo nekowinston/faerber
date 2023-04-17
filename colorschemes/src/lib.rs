@@ -1,3 +1,14 @@
+#![warn(
+    // clippy::cargo,
+    clippy::complexity,
+    clippy::nursery,
+    clippy::pedantic,
+    clippy::perf,
+    clippy::style,
+    clippy::unwrap_used,
+    clippy::expect_used
+)]
+
 use lazy_static::lazy_static;
 use std::collections::BTreeMap;
 use thiserror::Error;
@@ -12,7 +23,8 @@ pub struct Color {
     pub enabled: bool,
 }
 impl Color {
-    pub fn new(name: String, value: u32) -> Self {
+    #[must_use]
+    pub const fn new(name: String, value: u32) -> Self {
         Self {
             name,
             value,
@@ -28,6 +40,7 @@ pub struct Flavor {
     pub enabled: bool,
 }
 impl Flavor {
+    #[must_use]
     pub fn new(name: String, palette: Palette) -> Self {
         Self {
             name,
@@ -53,40 +66,61 @@ pub enum LibraryError {
     NoSuchFlavor(String),
     #[error("Color {0} does not exist")]
     NoSuchColor(String),
+    #[error("Failed to parse scheme: {0}")]
+    ParseColorSchemeError(String),
     #[error("Failed to parse color: {0}")]
     ParseColorError(String),
 }
 
 impl LibraryManager {
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
-    pub fn add_colorscheme(&mut self, name: &str, cs: &str) -> Result<ColorScheme, &'static str> {
+    /// Adds a colorscheme to this [`LibraryManager`].
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if the colorscheme cannot be parsed.
+    pub fn add_colorscheme(&mut self, name: &str, cs: &str) -> Result<ColorScheme, LibraryError> {
         let colorscheme = Self::parse_colorscheme(name, cs)?;
         self.library.insert(name.to_string(), colorscheme.clone());
         Ok(colorscheme)
     }
-    pub fn parse_colorscheme(name: &str, cs: &str) -> Result<ColorScheme, &'static str> {
-        if let Ok(saved_cs) = serde_json::from_str::<SavedColorscheme>(cs) {
-            let mut colorscheme = ColorScheme::new();
+    /// Parses a colorscheme.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if the colorscheme cannot be parsed.
+    pub fn parse_colorscheme(name: &str, cs: &str) -> Result<ColorScheme, LibraryError> {
+        serde_json::from_str::<SavedColorscheme>(cs).map_or_else(
+            |_| Err(LibraryError::ParseColorSchemeError(name.to_owned())),
+            |saved_cs| {
+                let mut colorscheme = ColorScheme::new();
 
-            saved_cs.into_iter().for_each(|(flavor_name, flavor)| {
-                let mut flavor_palette = Palette::new();
+                for (flavor_name, flavor) in saved_cs {
+                    let mut flavor_palette = Palette::new();
 
-                flavor.into_iter().for_each(|(name, value)| {
-                    let value = value.trim_start_matches('#');
-                    let color = Color::new(name, u32::from_str_radix(value, 16).unwrap());
-                    flavor_palette.insert(color.name.clone(), color);
-                });
+                    for (name, value) in flavor {
+                        let value = value.trim_start_matches('#');
+                        if let Ok(val) = u32::from_str_radix(value, 16) {
+                            let color = Color::new(name, val);
+                            flavor_palette.insert(color.name.clone(), color);
+                        }
+                    }
 
-                colorscheme.insert(name.to_owned(), Flavor::new(flavor_name, flavor_palette));
-            });
+                    colorscheme.insert(name.to_owned(), Flavor::new(flavor_name, flavor_palette));
+                }
 
-            Ok(colorscheme)
-        } else {
-            Err("failed to parse colorscheme")
-        }
+                Ok(colorscheme)
+            },
+        )
     }
+    /// Sets the color of this [`LibraryManager`].
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if .
     pub fn set_color(
         &mut self,
         cs: &str,
@@ -109,7 +143,9 @@ impl LibraryManager {
 
 lazy_static! {
     pub static ref DEFAULT_LIBRARY: Library = {
+        #[allow(clippy::unwrap_used)]
         let vendored_colorschemes =
+            // clippy::ignore
             parse_wezterm_colorscheme(include_str!("../vendor/wezterm.json")).unwrap();
         vendored_colorschemes
     };
@@ -122,7 +158,7 @@ lazy_static! {
 
 impl Default for LibraryManager {
     fn default() -> Self {
-        LibraryManager {
+        Self {
             library: DEFAULT_LIBRARY.clone(),
         }
     }
@@ -130,27 +166,29 @@ impl Default for LibraryManager {
 
 /// Utility function to parse wezterm colorschemes.
 fn parse_wezterm_colorscheme(content: &str) -> Result<Library, &'static str> {
-    if let Ok(wezterm_cs) = serde_json::from_str::<WezTermColorscheme>(content) {
-        let mut library = Library::new();
-        let mut wezterm = ColorScheme::new();
+    serde_json::from_str::<WezTermColorscheme>(content).map_or(
+        Err("failed to parse wezterm colorscheme"),
+        |wezterm_cs| {
+            let mut library = Library::new();
+            let mut wezterm = ColorScheme::new();
 
-        wezterm_cs.into_iter().for_each(|(name, palette)| {
-            let mut result = Palette::new();
+            for (name, palette) in wezterm_cs {
+                let mut result = Palette::new();
 
-            palette.into_iter().enumerate().for_each(|(i, color)| {
-                let color = color.trim_start_matches('#');
-                let color =
-                    Color::new(format!("color{i}"), u32::from_str_radix(color, 16).unwrap());
-                result.insert(color.name.clone(), color);
-            });
-            wezterm.insert(name.clone(), Flavor::new(name, result));
-        });
+                palette.into_iter().enumerate().for_each(|(i, color)| {
+                    let color = color.trim_start_matches('#');
+                    if let Ok(color) = u32::from_str_radix(color, 16) {
+                        let color = Color::new(format!("color{i}"), color);
+                        result.insert(color.name.clone(), color);
+                    }
+                });
+                wezterm.insert(name.clone(), Flavor::new(name, result));
+            }
 
-        library.insert("wezterm".to_string(), wezterm);
-        Ok(library)
-    } else {
-        Err("failed to parse wezterm colorscheme")
-    }
+            library.insert("wezterm".to_string(), wezterm);
+            Ok(library)
+        },
+    )
 }
 
 #[cfg(test)]
@@ -169,16 +207,16 @@ mod tests {
 
         let mut library = LibraryManager::new();
         library.add_colorscheme("catpuccin", &contents).unwrap();
-        println!("{:?}", library);
+        println!("{library:?}");
     }
 
     #[test]
     fn test_parse_wezterm_colorscheme() {
         let data = parse_wezterm_colorscheme(include_str!("../vendor/wezterm.json")).unwrap();
         let count = data.len();
-        data.into_iter().for_each(|(name, flavor)| {
+        for (name, flavor) in data {
             println!("{}: {}", name, flavor.len());
-        });
+        }
         println!("{count} colorschemes parsed");
     }
 
@@ -191,6 +229,6 @@ mod tests {
             .unwrap()
             .get("Catppuccin Mocha")
             .unwrap();
-        println!("{:?}", cs);
+        println!("{cs:?}");
     }
 }
