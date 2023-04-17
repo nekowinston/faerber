@@ -1,6 +1,6 @@
-use std::collections::BTreeMap;
-
 use lazy_static::lazy_static;
+use std::collections::BTreeMap;
+use thiserror::Error;
 
 type WezTermColorscheme = BTreeMap<String, Vec<String>>;
 type SavedColorscheme = BTreeMap<String, BTreeMap<String, String>>;
@@ -40,26 +40,34 @@ impl Flavor {
 pub type ColorScheme = BTreeMap<String, Flavor>;
 pub type Library = BTreeMap<String, ColorScheme>;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct LibraryManager {
     pub library: Library,
+}
+
+#[derive(Debug, Error)]
+pub enum LibraryError {
+    #[error("Colorscheme {0} does not exist")]
+    NoSuchColorscheme(String),
+    #[error("Flavor {0} does not exist")]
+    NoSuchFlavor(String),
+    #[error("Color {0} does not exist")]
+    NoSuchColor(String),
+    #[error("Failed to parse color: {0}")]
+    ParseColorError(String),
 }
 
 impl LibraryManager {
     pub fn new() -> Self {
         Self::default()
     }
-    pub fn add_colorscheme(
-        &mut self,
-        name: String,
-        cs: String,
-    ) -> Result<ColorScheme, &'static str> {
-        let colorscheme = Self::parse_colorscheme(name.clone(), cs)?;
-        self.library.insert(name, colorscheme.clone());
+    pub fn add_colorscheme(&mut self, name: &str, cs: &str) -> Result<ColorScheme, &'static str> {
+        let colorscheme = Self::parse_colorscheme(name, cs)?;
+        self.library.insert(name.to_string(), colorscheme.clone());
         Ok(colorscheme)
     }
-    pub fn parse_colorscheme(name: String, cs: String) -> Result<ColorScheme, &'static str> {
-        if let Ok(saved_cs) = serde_json::from_str::<SavedColorscheme>(&cs) {
+    pub fn parse_colorscheme(name: &str, cs: &str) -> Result<ColorScheme, &'static str> {
+        if let Ok(saved_cs) = serde_json::from_str::<SavedColorscheme>(cs) {
             let mut colorscheme = ColorScheme::new();
 
             saved_cs.into_iter().for_each(|(flavor_name, flavor)| {
@@ -78,6 +86,24 @@ impl LibraryManager {
         } else {
             Err("failed to parse colorscheme")
         }
+    }
+    pub fn set_color(
+        &mut self,
+        cs: &str,
+        flavor: &str,
+        color: &str,
+        status: bool,
+    ) -> Result<bool, LibraryError> {
+        self.library
+            .get_mut(cs)
+            .ok_or_else(|| LibraryError::NoSuchColorscheme(cs.to_owned()))?
+            .get_mut(flavor)
+            .ok_or_else(|| LibraryError::NoSuchFlavor(flavor.to_owned()))?
+            .palette
+            .get_mut(color)
+            .ok_or_else(|| LibraryError::NoSuchColor(color.to_owned()))?
+            .enabled = status;
+        Ok(status)
     }
 }
 
@@ -142,9 +168,7 @@ mod tests {
             .expect("something went wrong reading the file");
 
         let mut library = LibraryManager::new();
-        library
-            .add_colorscheme("catpuccin".to_string(), contents)
-            .unwrap();
+        library.add_colorscheme("catpuccin", &contents).unwrap();
         println!("{:?}", library);
     }
 

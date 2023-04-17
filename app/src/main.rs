@@ -98,7 +98,7 @@ impl eframe::App for MyApp {
                     .keys()
                     .filter_map(|f| {
                         if self.flavor_filter.is_empty() {
-                            return Some(f);
+                            Some(f)
                         } else {
                             best_match(&self.flavor_filter, f).map(|_| f)
                         }
@@ -110,7 +110,8 @@ impl eframe::App for MyApp {
             });
             ui.label("Colors");
             ui.horizontal(|ui| {
-                self.library
+                let library = self.library.clone();
+                library
                     .library
                     .get(&self.color_scheme)
                     .unwrap()
@@ -123,25 +124,35 @@ impl eframe::App for MyApp {
                         let size = Vec2::splat(2.0 * r + 5.0);
                         let (rect, sense) = ui
                             .allocate_at_least(size, Sense::union(Sense::hover(), Sense::click()));
+
+                        let hint_text = format!("{}: {}", color.1.name, color.1.enabled);
                         sense
                             .clone()
                             .on_hover_cursor(egui::CursorIcon::PointingHand)
-                            .on_hover_text(color.0.to_string());
+                            .on_hover_text(hint_text);
 
                         let cv = color.1.value;
+                        let c_view = egui::Color32::from_rgba_premultiplied(
+                            (cv >> 16 & 0xFF) as u8,
+                            (cv >> 8 & 0xFF) as u8,
+                            (cv & 0xFF) as u8,
+                            255,
+                        );
+
                         let c = match color.1.enabled {
-                            true => egui::Color32::from_rgb(
-                                (cv >> 16 & 0xFF) as u8,
-                                (cv >> 8 & 0xFF) as u8,
-                                (cv & 0xFF) as u8,
-                            ),
-                            false => egui::Color32::BLACK,
+                            true => c_view,
+                            false => c_view.gamma_multiply(0.3),
                         };
 
                         if sense.clicked() {
-                            todo!("toggle the color")
-                            // self.library
-                            //     .set_color(&self.color_scheme, &self.flavor, color.0, 0);
+                            self.library
+                                .set_color(
+                                    &self.color_scheme,
+                                    &self.flavor,
+                                    color.0,
+                                    !color.1.enabled,
+                                )
+                                .unwrap();
                         }
 
                         // ui.painter().circle_filled(rect.center(), r, c);

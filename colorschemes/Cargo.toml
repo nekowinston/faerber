@@ -7,3 +7,4 @@ edition = "2021"
 lazy_static = "1.4.0"
 serde = { version = "1.0.144", features = ["serde_derive"] }
 serde_json = "1.0.85"
+thiserror = "1.0.40"
