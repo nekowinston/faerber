@@ -7,11 +7,11 @@ edition = "2021"
 base64 = "0.21.0"
 css-color = "0.2.4"
 deltae = "0.3.0"
-dither = { git = "https://github.com/nekowinston/dither", version = "1.3.10" }
+dither = { path = "../dither" }
 image = "0.24.5"
 lab = "0.11.0"
 rayon = "1.5.3"
-quick-xml = "0.27.1"
+quick-xml = "0.28.2"
 
 [dev-dependencies]
 criterion = "0.4.0"

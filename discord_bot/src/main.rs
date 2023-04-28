@@ -17,7 +17,7 @@ use std::{
 
 use colorschemes::LibraryManager;
 use faerber::get_labs;
-use faerber_lib::convert;
+use faerber_lib::convert_naive;
 use phf::phf_map;
 use poise::serenity_prelude::{self as serenity, Mentionable, ReactionType};
 use sha2::{Digest, Sha256};
@@ -115,7 +115,7 @@ async fn download_and_convert_image(url: &str, flavor: &str) -> Result<Conversio
 
     let labs = get_labs(flavor.clone());
 
-    let result = convert(&image.to_rgba8(), faerber_lib::DEMethod::DE2000, &labs);
+    let result = convert_naive(&image.to_rgba8(), faerber_lib::DEMethod::DE2000, &labs);
     let mut c = Cursor::new(Vec::new());
     image::write_buffer_with_format(
         &mut c,

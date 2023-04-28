@@ -212,7 +212,8 @@ fn main() {
             }
         };
 
-        let result = faerber_lib::convert(&img, ConversionMethod::DitherFloydSteinberg, &labs);
+        let result =
+            faerber_lib::convert_naive(&img, ConversionMethod::DitherFloydSteinberg, &labs);
         // let result = faerber_lib::convert(&img, method, &labs);
         let mut c = Cursor::new(Vec::new());
         image::write_buffer_with_format(

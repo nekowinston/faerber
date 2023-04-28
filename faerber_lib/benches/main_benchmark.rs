@@ -1,7 +1,6 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 
-use deltae::DEMethod;
-use faerber_lib::{convert, convert_color, rgba_pixels_to_labs};
+use faerber_lib::{convert_color, convert_naive, rgba_pixels_to_labs, ConversionMethod};
 use image::RgbaImage;
 
 pub fn benchmark(c: &mut Criterion) {
@@ -26,31 +25,31 @@ pub fn benchmark(c: &mut Criterion) {
     c.benchmark_group("pixel")
         .sample_size(100)
         .bench_function("de1976", |b| {
-            b.iter(|| convert_color(DEMethod::DE1976, &palette, &random_lab))
+            b.iter(|| convert_color(ConversionMethod::De1976, &palette, &random_lab))
         })
         .bench_function("de1994g", |b| {
-            b.iter(|| convert_color(DEMethod::DE1994G, &palette, &random_lab))
+            b.iter(|| convert_color(ConversionMethod::De1994G, &palette, &random_lab))
         })
         .bench_function("de1994t", |b| {
-            b.iter(|| convert_color(DEMethod::DE1994T, &palette, &random_lab))
+            b.iter(|| convert_color(ConversionMethod::De1994T, &palette, &random_lab))
         })
         .bench_function("de2000", |b| {
-            b.iter(|| convert_color(DEMethod::DE2000, &palette, &random_lab))
+            b.iter(|| convert_color(ConversionMethod::De2000, &palette, &random_lab))
         });
 
     c.benchmark_group("image")
         .sample_size(10)
         .bench_function("de1976", |b| {
-            b.iter(|| convert(&img, DEMethod::DE1976, &palette))
+            b.iter(|| convert_naive(&img, DEMethod::DE1976, &palette))
         })
         .bench_function("de1994g", |b| {
-            b.iter(|| convert(&img, DEMethod::DE1994G, &palette))
+            b.iter(|| convert_naive(&img, DEMethod::DE1994G, &palette))
         })
         .bench_function("de1994t", |b| {
-            b.iter(|| convert(&img, DEMethod::DE1994T, &palette))
+            b.iter(|| convert_naive(&img, DEMethod::DE1994T, &palette))
         })
         .bench_function("de2000", |b| {
-            b.iter(|| convert(&img, DEMethod::DE2000, &palette))
+            b.iter(|| convert_naive(&img, DEMethod::DE2000, &palette))
         });
 
     c.benchmark_group("other")
