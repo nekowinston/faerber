@@ -5,10 +5,10 @@ edition = "2021"
 
 [dependencies]
 base64 = "0.21.0"
-css-color = "0.2.4"
-deltae = "0.3.0"
-dither = { path = "../dither" }
-image = "0.24.5"
+css-color.workspace = true
+deltae.workspace = true
+dither.workspace = true
+image.workspace = true
 lab = "0.11.0"
 rayon = "1.5.3"
 quick-xml = "0.28.2"

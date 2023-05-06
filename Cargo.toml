@@ -9,6 +9,20 @@ members = [
 ]
 default-members = ["faerber"]
 
+[workspace.dependencies]
+colorschemes = { path = "colorschemes" }
+css-color = "0.2.4"
+deltae = "0.3.0"
+dither = { path = "dither" }
+faerber = { path = "faerber" }
+faerber_lib = { path = "faerber_lib" }
+oxipng = "0.8.0"
+image = "0.24.5"
+lazy_static = "1.4.0"
+serde = "1.0.162"
+serde_json = "1.0.85"
+thiserror = "1.0.40"
+
 [profile.release]
 lto = true
 opt-level = 3
