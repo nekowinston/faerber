@@ -10,8 +10,8 @@ pub mod ditherer;
 mod error;
 mod img;
 pub mod prelude;
-pub use self::error::DitherResult;
-pub use self::error::Error;
+use self::error::DitherResult;
+use self::error::Error;
 
 use self::prelude::*;
 #[cfg(test)]

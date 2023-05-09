@@ -1,13 +1,24 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 
-use faerber_lib::{convert_color, convert_naive, rgba_pixels_to_labs, ConversionMethod};
+use faerber_lib::{
+    convert_color, convert_dither, convert_naive, rgba_pixels_to_labs, ConversionMethod,
+};
 use image::RgbaImage;
+
+// ty NyxKrage <3
+macro_rules! include_root_bytes {
+    ($path: expr) => {
+        include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/", $path))
+    };
+}
 
 pub fn benchmark(c: &mut Criterion) {
     // benchmark image: Wanderer über dem Nebelmeer - by Casper David Friedrich
-    let img: RgbaImage = image::open("./benches/wanderer-ueber-dem-nebelmeer.jpg")
-        .expect("Benchmark image should exist")
-        .to_rgba8();
+    let img: RgbaImage = image::load_from_memory(include_root_bytes!(
+        "../assets/tests/wanderer-ueber-dem-nebelmeer.jpg"
+    ))
+    .unwrap()
+    .to_rgba8();
 
     // benchmark colorscheme: Nord - by Arctic Ice Studio
     let colors: &[u32] = &[
@@ -40,16 +51,19 @@ pub fn benchmark(c: &mut Criterion) {
     c.benchmark_group("image")
         .sample_size(10)
         .bench_function("de1976", |b| {
-            b.iter(|| convert_naive(&img, DEMethod::DE1976, &palette))
+            b.iter(|| convert_naive(&img, ConversionMethod::De1976, &palette))
         })
         .bench_function("de1994g", |b| {
-            b.iter(|| convert_naive(&img, DEMethod::DE1994G, &palette))
+            b.iter(|| convert_naive(&img, ConversionMethod::De1994G, &palette))
         })
         .bench_function("de1994t", |b| {
-            b.iter(|| convert_naive(&img, DEMethod::DE1994T, &palette))
+            b.iter(|| convert_naive(&img, ConversionMethod::De1994T, &palette))
         })
         .bench_function("de2000", |b| {
-            b.iter(|| convert_naive(&img, DEMethod::DE2000, &palette))
+            b.iter(|| convert_naive(&img, ConversionMethod::De2000, &palette))
+        })
+        .bench_function("dither_sierra3", |b| {
+            b.iter(|| convert_dither(&img, ConversionMethod::DitherSierra3, &colors))
         });
 
     c.benchmark_group("other")

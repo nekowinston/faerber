@@ -10,8 +10,9 @@ deltae.workspace = true
 dither.workspace = true
 image.workspace = true
 lab = "0.11.0"
-rayon = "1.5.3"
 quick-xml = "0.28.2"
+rayon = "1.5.3"
+thiserror = "1.0"
 
 [dev-dependencies]
 criterion = "0.4.0"

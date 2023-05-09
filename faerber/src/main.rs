@@ -115,7 +115,7 @@ fn slugify(s: &str) -> String {
     "_".to_owned() + &s.to_lowercase().replace([' ', '_'], "_")
 }
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let libman = LibraryManager::new();
     let matches = build_cli().get_matches();
 
@@ -175,7 +175,7 @@ fn main() {
             if colorscheme.contains_key(flavour) {
                 let colors = colorscheme
                     .get(flavour)
-                    .unwrap()
+                    .expect("random text")
                     .palette
                     .values()
                     .map(|v| v.value)
@@ -197,9 +197,10 @@ fn main() {
         },
     );
 
-    if file_ext == "svg" {
+    Ok(if file_ext == "svg" {
         let contents = read_to_string(input).unwrap();
-        let result = faerber_lib::convert_vector(&contents, faerber_lib::DEMethod::DE2000, &labs);
+        let result =
+            faerber_lib::convert_vector(&contents, faerber_lib::ConversionMethod::De2000, &labs)?;
         println!("{result}");
         let mut fp = File::create(output).unwrap();
         fp.write_all(result.as_bytes()).unwrap();
@@ -212,8 +213,18 @@ fn main() {
             }
         };
 
-        let result =
-            faerber_lib::convert_naive(&img, ConversionMethod::DitherFloydSteinberg, &labs);
+        let palette: Vec<_> = colorscheme
+            .get(flavour.unwrap())
+            .expect("palette should have a flavour")
+            .palette
+            .values()
+            .map(|v| v.value)
+            .collect();
+        let result = faerber_lib::convert_dither(
+            &img,
+            faerber_lib::ConversionMethod::DitherSierra3,
+            &palette,
+        )?;
         // let result = faerber_lib::convert(&img, method, &labs);
         let mut c = Cursor::new(Vec::new());
         image::write_buffer_with_format(
@@ -223,11 +234,10 @@ fn main() {
             img.height(),
             image::ColorType::Rgba8,
             image::ImageFormat::Png,
-        )
-        .expect("Could not write to buffer");
-        let compressed = oxipng::optimize_from_memory(&c.into_inner(), &oxipng::Options::default());
+        )?;
+        // let compressed = oxipng::optimize_from_memory(&c.into_inner(), &oxipng::Options::default());
         let mut file = std::fs::File::create(output).expect("Could not create file");
-        file.write_all(&compressed.expect("Could not compress file"))
+        file.write_all(&c.into_inner())
             .expect("Could not write to file");
-    }
+    })
 }

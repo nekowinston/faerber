@@ -1,6 +1,6 @@
 . | 
 map({
-  (.metadata.name): (
+  (.metadata.name | ascii_downcase): (
     [
       .colors.ansi[]?,
       .colors.brights[]?,

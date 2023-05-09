@@ -40,7 +40,7 @@ impl Default for MyApp {
             opened_file: None,
             library: LibraryManager::new(),
             color_scheme: "wezterm".to_string(),
-            flavor: "Catppuccin Mocha".to_string(),
+            flavor: "catppuccin mocha".to_string(),
             flavor_filter: "".to_string(),
         }
     }

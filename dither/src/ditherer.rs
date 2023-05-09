@@ -6,7 +6,7 @@ use std::ops::{Add, Div, Mul};
 /// dither a 2d matrix.
 /// `P`  is the type of pixel; in practice, it is either [f64] or [`RGB<f64>`][RGB]
 pub trait Dither<P> {
-    fn dither(&self, img: Img<P>, quantize: impl FnMut(P) -> (P, P)) -> Img<P>;
+    fn dither(&self, img: Img<P>, quantize: impl Fn(P) -> (P, P)) -> Img<P>;
 }
 /// A type of Dither. See the documentation for the constants (i.e, [ATKINSON]) for the dither matrices themselves.
 /// A ditherer carries error from quantiation to nearby pixels after dividing by `div` and multiplying by the given scalar in offset; "spreading" the error,
@@ -52,7 +52,7 @@ where
 {
     /// dither an image using the specified offsets and divisor.
     /// `P` is the type of pixel; in practice, it is either [f64] or [RGB<f64]
-    fn dither(&self, mut img: Img<P>, mut quantize: impl FnMut(P) -> (P, P)) -> super::Img<P> {
+    fn dither(&self, mut img: Img<P>, quantize: impl Fn(P) -> (P, P)) -> super::Img<P> {
         let width = img.width() as isize;
         let mut spillover = vec![P::default(); img.len()];
         for (i, p) in img.iter_mut().enumerate() {

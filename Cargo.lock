@@ -1540,6 +1540,7 @@ dependencies = [
  "quick-xml",
  "rand",
  "rayon",
+ "thiserror",
 ]
 
 [[package]]
