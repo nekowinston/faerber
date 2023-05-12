@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+colorschemes.workspace = true
 faerber = { path = "../faerber" }
 faerber_lib = { path = "../faerber_lib" }
 image.workspace = true

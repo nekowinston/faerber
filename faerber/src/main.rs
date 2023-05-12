@@ -197,7 +197,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
     );
 
-    Ok(if file_ext == "svg" {
+    if file_ext == "svg" {
         let contents = read_to_string(input).unwrap();
         let result =
             faerber_lib::convert_vector(&contents, faerber_lib::ConversionMethod::De2000, &labs)?;
@@ -239,5 +239,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut file = std::fs::File::create(output).expect("Could not create file");
         file.write_all(&c.into_inner())
             .expect("Could not write to file");
-    })
+    }
+    Ok(())
 }

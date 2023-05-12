@@ -1,12 +1,14 @@
 #![warn(
     // clippy::cargo,
-    clippy::complexity,
-    clippy::nursery,
     // clippy::pedantic,
+    clippy::complexity,
+    clippy::expect_used,
+    clippy::nursery,
     clippy::perf,
     clippy::style,
+    clippy::suspicious,
+    clippy::suspicious,
     clippy::unwrap_used,
-    clippy::expect_used,
 )]
 #![allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
 
@@ -27,19 +29,30 @@ use quick_xml::{events::attributes::Attribute, name::QName};
 use rayon::prelude::*;
 use std::borrow::Cow;
 use std::io::Cursor;
+use strum::{Display, EnumIter, EnumString};
 use thiserror::Error;
 
-#[derive(Clone, Copy, Eq, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Eq, PartialEq, PartialOrd, EnumIter, EnumString, Display)]
 pub enum ConversionMethod {
+    #[strum(serialize = "de1976")]
     De1976,
+    #[strum(serialize = "de1994g")]
     De1994T,
+    #[strum(serialize = "de1994t")]
     De1994G,
+    #[strum(serialize = "de2000")]
     De2000,
+    #[strum(serialize = "dither_floydsteinberg")]
     DitherFloydSteinberg,
+    #[strum(serialize = "dither_atkinson")]
     DitherAtkinson,
+    #[strum(serialize = "dither_stucki")]
     DitherStucki,
+    #[strum(serialize = "dither_burkes")]
     DitherBurkes,
+    #[strum(serialize = "dither_jarvisjudiceninke")]
     DitherJarvisJudiceNinke,
+    #[strum(serialize = "dither_sierra3")]
     DitherSierra3,
 }
 
@@ -68,7 +81,7 @@ impl TryFrom<ConversionMethod> for DEMethod {
 }
 
 impl TryFrom<ConversionMethod> for Ditherer<'static> {
-    type Error = &'static str;
+    type Error = ConversionError;
 
     fn try_from(value: ConversionMethod) -> Result<Self, Self::Error> {
         match value {
@@ -78,33 +91,32 @@ impl TryFrom<ConversionMethod> for Ditherer<'static> {
             ConversionMethod::DitherJarvisJudiceNinke => Ok(ditherer::JARVIS_JUDICE_NINKE),
             ConversionMethod::DitherSierra3 => Ok(ditherer::SIERRA_3),
             ConversionMethod::DitherStucki => Ok(ditherer::STUCKI),
-            _ => Err("Invalid conversion method"),
+            _ => Err(ConversionError::InvalidConversionMethod),
         }
     }
 }
 
-impl std::str::FromStr for ConversionMethod {
-    type Err = &'static str;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(match s.to_ascii_lowercase().as_ref() {
-            "de1976" => Self::De1976,
-            "de1994g" => Self::De1994G,
-            "de1994t" => Self::De1994T,
-            "de2000" => Self::De2000,
-            "dither_atkinson" => Self::DitherAtkinson,
-            "dither_burkes" => Self::DitherBurkes,
-            "dither_floydsteinberg" => Self::DitherFloydSteinberg,
-            "dither_jarvisjudiceninke" => Self::DitherJarvisJudiceNinke,
-            "dither_sierra3" => Self::DitherSierra3,
-            "dither_stucki" => Self::DitherStucki,
-            _ => return Err("Invalid conversion method"),
-        })
-    }
-}
+// impl std::str::FromStr for ConversionMethod {
+//     type Err = &'static str;
+//
+//     fn from_str(s: &str) -> Result<Self, Self::Err> {
+//         Ok(match s.to_ascii_lowercase().as_ref() {
+//             "de1976" => Self::De1976,
+//             "de1994g" => Self::De1994G,
+//             "de1994t" => Self::De1994T,
+//             "de2000" => Self::De2000,
+//             "dither_atkinson" => Self::DitherAtkinson,
+//             "dither_burkes" => Self::DitherBurkes,
+//             "dither_floydsteinberg" => Self::DitherFloydSteinberg,
+//             "dither_jarvisjudiceninke" => Self::DitherJarvisJudiceNinke,
+//             "dither_sierra3" => Self::DitherSierra3,
+//             "dither_stucki" => Self::DitherStucki,
+//             _ => return Err("Invalid conversion method"),
+//         })
+//     }
+// }
 
 // used for the WASM library to convert the HEX colors to CIELAB
-#[must_use]
 pub fn convert_palette_to_lab(palette: &[u32]) -> Vec<Lab> {
     palette
         .iter()
@@ -195,7 +207,6 @@ fn convert_map<'a>(
     })
 }
 
-// #[must_use]
 pub fn convert_vector(
     source: &str,
     convert_method: ConversionMethod,
@@ -238,7 +249,6 @@ pub fn convert_vector(
     Ok(String::from_utf8(result)?)
 }
 
-#[must_use]
 pub fn convert_naive(
     img: &RgbaImage,
     method: ConversionMethod,
@@ -252,7 +262,7 @@ pub fn convert_naive(
     match method {
         ConversionMethod::De2000 => Ok(img_labs
             .par_iter()
-            .map(|lab| convert_color(method.try_into().unwrap(), labs, lab))
+            .map(|lab| convert_color(method, labs, lab))
             .collect::<Result<Vec<_>, ConversionError>>()?
             .into_iter()
             .flatten()
@@ -260,7 +270,7 @@ pub fn convert_naive(
         ConversionMethod::De1976 | ConversionMethod::De1994G | ConversionMethod::De1994T => {
             Ok(img_labs
                 .iter()
-                .map(|lab| convert_color(method.try_into().unwrap(), labs, lab))
+                .map(|lab| convert_color(method, labs, lab))
                 .collect::<Result<Vec<_>, ConversionError>>()?
                 .into_iter()
                 .flatten()
@@ -270,12 +280,11 @@ pub fn convert_naive(
     }
 }
 
-#[must_use]
 pub fn convert_dither(
     img: &RgbaImage,
     convert_method: ConversionMethod,
     palette: &[u32],
-) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+) -> Result<Vec<u8>, ConversionError> {
     let buf: Vec<RGB<u8>> = img.pixels().map(|p| RGB(p.0[0], p.0[1], p.0[2])).collect();
     let img: Img<RGB<f64>> = Img::new(buf, img.width())
         .unwrap()
@@ -291,27 +300,25 @@ pub fn convert_dither(
         _ => Err(ConversionError::InvalidConversionMethod),
     }?;
 
-    let palette = dbg!(palette
+    let palette = palette
         .iter()
         .map(|color| dither::color::RGB::from_hex(*color))
-        .collect());
+        .collect();
 
     let result = ditherer
         .dither(img, dither::color::palette::quantize(palette))
         .convert_with(|rgb| rgb.convert_with(clamp_f64_to_u8));
 
-    return Ok(result
+    Ok(result
         .into_iter()
         .flat_map(|v| [v.0, v.1, v.2, 255])
-        .collect());
+        .collect())
 }
 
-#[must_use]
 pub fn rgba_pixels_to_labs(img_pixels: Pixels<Rgba<u8>>) -> Vec<Lab> {
     img_pixels.map(|pixel| Lab::from_rgba(&pixel.0)).collect()
 }
 
-#[must_use]
 pub fn convert_color(
     convert_method: ConversionMethod,
     palette: &[Lab],

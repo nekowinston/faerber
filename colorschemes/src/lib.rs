@@ -1,14 +1,16 @@
 #![warn(
     // clippy::cargo,
+    // clippy::pedantic,
     clippy::complexity,
+    clippy::expect_used,
     clippy::nursery,
-    clippy::pedantic,
     clippy::perf,
     clippy::style,
+    clippy::suspicious,
     clippy::unwrap_used,
-    clippy::expect_used
 )]
 
+use faerber_lib::Lab;
 use lazy_static::lazy_static;
 use std::collections::BTreeMap;
 use thiserror::Error;
@@ -31,6 +33,13 @@ impl Color {
             enabled: true,
         }
     }
+    pub fn get_lab(&self) -> Lab {
+        Lab::from_rgb(&[
+            ((self.value >> 16) & 0xFF) as u8,
+            ((self.value >> 8) & 0xFF) as u8,
+            (self.value & 0xFF) as u8,
+        ])
+    }
 }
 pub type Palette = BTreeMap<String, Color>;
 #[derive(Clone, Default, Debug)]
@@ -47,6 +56,26 @@ impl Flavor {
             palette,
             enabled: true,
         }
+    }
+    pub fn get(&self, name: &str) -> Option<&Color> {
+        self.palette.get(name)
+    }
+    pub fn get_colors(&self) -> Vec<Color> {
+        self.palette.values().cloned().collect::<Vec<_>>()
+    }
+    pub fn get_labs(&self) -> Vec<Lab> {
+        self.palette
+            .values()
+            .filter(|c| c.enabled)
+            .map(|c| c.get_lab())
+            .collect::<Vec<_>>()
+    }
+    pub fn get_u32s(&self) -> Vec<u32> {
+        self.palette
+            .values()
+            .filter(|c| c.enabled)
+            .map(|c| c.value)
+            .collect::<Vec<_>>()
     }
 }
 
@@ -138,6 +167,9 @@ impl LibraryManager {
             .ok_or_else(|| LibraryError::NoSuchColor(color.to_owned()))?
             .enabled = status;
         Ok(status)
+    }
+    pub fn get(&self, name: &str) -> Option<&ColorScheme> {
+        self.library.get(name)
     }
 }
 

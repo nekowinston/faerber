@@ -23,33 +23,22 @@
         pkgs = import nixpkgs {
           inherit system overlays;
         };
+        inherit (pkgs) lib;
+        inherit (pkgs.stdenv.hostPlatform) isDarwin;
       in {
-        devShells.default = let
-          inherit (pkgs.stdenv.hostPlatform) isDarwin;
-        in
-          pkgs.mkShell {
-            buildInputs = with pkgs;
-              [
-                (rust-bin.fromRustupToolchainFile ./rust-toolchain.toml)
-                libiconv
-                openssl
-                pkg-config
-                # WASM dependencies
-                binaryen
-                wasm-bindgen-cli
-                wasm-pack
-              ]
-              ++ lib.optionals isDarwin (with darwin.apple_sdk.frameworks; [
-                # GUI dependencies on darwin
-                AppKit
-                CoreServices
-                OpenGL
-                Security
-              ]);
-            shellHook = ''
-              ${self.checks.${system}.pre-commit-check.shellHook}
-            '';
-          };
+        devShells.default = pkgs.mkShell {
+          buildInputs =
+            lib.flatten (lib.mapAttrsToList (name: pkg: pkg.buildInputs) self.packages.${system})
+            ++ (with pkgs; [
+              # WASM dependencies, needed for the npm release only
+              binaryen
+              wasm-bindgen-cli
+              wasm-pack
+            ]);
+          shellHook = ''
+            ${self.checks.${system}.pre-commit-check.shellHook}
+          '';
+        };
 
         checks = {
           pre-commit-check = pre-commit-hooks.lib.${system}.run {
@@ -60,11 +49,38 @@
           };
         };
 
-        packages = rec {
+        packages = let
+          src = lib.cleanSource ./.;
+          cargoLock = {
+            lockFile = ./Cargo.lock;
+          };
+        in rec {
           faerber = pkgs.rustPlatform.buildRustPackage {
             name = "faerber";
-            src = ./.;
-            cargoSha256 = "sha256-0LToDRfalQCBC5SAS76Gr3RYZwednmXaStjcOqnE2L0=";
+            inherit src cargoLock;
+
+            buildInputs = with pkgs; [
+              (rust-bin.fromRustupToolchainFile ./rust-toolchain.toml)
+              libiconv
+              openssl
+              pkg-config
+              zlib
+            ];
+          };
+          faerber-app = pkgs.rustPlatform.buildRustPackage {
+            name = "faerber-app";
+            inherit src cargoLock;
+
+            buildAndTestSubdir = "app";
+            buildInputs =
+              faerber.buildInputs
+              ++ lib.optionals isDarwin (with pkgs.darwin.apple_sdk_11_0.frameworks; [
+                # GUI dependencies on darwin
+                AppKit
+                CoreServices
+                OpenGL
+                Security
+              ]);
           };
           default = faerber;
         };
