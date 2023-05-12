@@ -1214,7 +1214,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "discord_bot"
+name = "discord-bot"
 version = "0.1.0"
 dependencies = [
  "colorschemes",

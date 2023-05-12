@@ -16,7 +16,6 @@ use std::{
 };
 
 use colorschemes::LibraryManager;
-use faerber::get_labs;
 use faerber_lib::convert_naive;
 use phf::phf_map;
 use poise::serenity_prelude::{self as serenity, Mentionable, ReactionType};
@@ -106,16 +105,20 @@ async fn download_and_convert_image(url: &str, flavor: &str) -> Result<Conversio
         false
     };
 
-    let library = Library::new();
+    let library = LibraryManager::new();
     let flavor = library
         .get("catppuccin")
         .expect("Could not find catppuccin in library")
-        .get(flavor)
+        .get(&("catppuccin ".to_owned() + flavor))
         .expect("Could not find flavor in catppuccin");
 
-    let labs = get_labs(flavor.clone());
+    let labs = flavor.get_labs();
 
-    let result = convert_naive(&image.to_rgba8(), faerber_lib::DEMethod::DE2000, &labs);
+    let result = convert_naive(
+        &image.to_rgba8(),
+        faerber_lib::ConversionMethod::De2000,
+        &labs,
+    )?;
     let mut c = Cursor::new(Vec::new());
     image::write_buffer_with_format(
         &mut c,

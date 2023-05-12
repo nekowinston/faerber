@@ -93,16 +93,19 @@
               ++ lib.optionals isDarwin (with pkgs.darwin.apple_sdk_11_0.frameworks; [
                 # GUI dependencies on darwin
                 AppKit
-                CoreServices
-                OpenGL
-                Security
               ]);
           };
           discord-bot = craneLib.buildPackage rec {
             name = "discord-bot";
             pname = name;
 
-            inherit (faerber) src buildInputs;
+            inherit (faerber) src;
+            buildInputs =
+              faerber.buildInputs
+              ++ lib.optionals isDarwin (with pkgs.darwin.apple_sdk_11_0.frameworks; [
+                # GUI dependencies on darwin
+                Security
+              ]);
             cargoExtraArgs = "-p ${name}";
           };
           default = faerber;
