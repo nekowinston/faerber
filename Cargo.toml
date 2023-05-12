@@ -10,12 +10,12 @@ members = [
 default-members = ["faerber"]
 
 [workspace.dependencies]
-colorschemes = { path = "colorschemes" }
+colorschemes.path = "colorschemes"
 css-color = "0.2.4"
 deltae = "0.3.0"
-dither = { path = "dither" }
-faerber = { path = "faerber" }
-faerber_lib = { path = "faerber_lib" }
+dither.path = "dither"
+faerber.path = "faerber"
+faerber_lib.path = "faerber_lib"
 image = "0.24.5"
 lazy_static = "1.4.0"
 oxipng = "0.8.0"
