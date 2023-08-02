@@ -15,12 +15,13 @@ sha2 = "0.10.6"
 
 [dependencies.reqwest]
 version = "0.11.14"
-features = ["blocking"]
+default-features = false
+features = ["rustls-tls"]
 
 [dependencies.serenity]
 version = "0.11.5"
 default-features = false
-features = ["client", "gateway", "native_tls_backend", "model"]
+features = ["client", "gateway", "model", "rustls_backend"]
 
 [dependencies.tokio]
 version = "1.25.0"

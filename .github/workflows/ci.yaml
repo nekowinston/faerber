@@ -1,14 +1,12 @@
 on:
   push:
-    paths:
+    branches: [main]
+    paths: &paths
       - "**.rs"
       - "**.toml"
       - ".github/workflows/**"
   pull_request:
-    paths:
-      - "**.rs"
-      - "**.toml"
-      - ".github/workflows/**"
+    paths: *paths
 
 jobs:
   build:

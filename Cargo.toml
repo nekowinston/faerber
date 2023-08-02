@@ -8,7 +8,7 @@ members = [
   "faerber_lib",
 ]
 default-members = ["faerber"]
-package.version = "0.1.0"
+resolver = "2"
 
 [workspace.dependencies]
 colorschemes.path = "colorschemes"
